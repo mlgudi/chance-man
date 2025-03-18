@@ -82,11 +82,8 @@ public class RollAnimationManager
         if (!isRolling && !rollQueue.isEmpty())
         {
             int dropItemId = rollQueue.poll();
-            if (!unlockedManager.isUnlocked(dropItemId))
-            {
-                isRolling = true;
-                executor.submit(this::performRoll);
-            }
+            isRolling = true;
+            executor.submit(this::performRoll);
         }
     }
 

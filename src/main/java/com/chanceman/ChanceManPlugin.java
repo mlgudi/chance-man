@@ -8,7 +8,6 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemSpawned;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.TileItem;
-import net.runelite.api.coords.WorldPoint;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.game.ItemManager;
@@ -23,11 +22,7 @@ import net.runelite.client.eventbus.Subscribe;
 import javax.inject.Inject;
 import javax.swing.*;
 import java.awt.image.BufferedImage;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * ChanceManPlugin locks tradeable items until unlocked via a random roll.
@@ -74,8 +69,7 @@ public class ChanceManPlugin extends Plugin
 
     // List of tradeable item IDs (excluding coins)
     private final List<Integer> allTradeableItems = new ArrayList<>();
-    // Map to track ground items: key = "worldPoint_itemId", value = tick count when spawned.
-    private final Map<String, Integer> groundItemTicks = new HashMap<>();
+    // (groundItemTicks no longer used since our unique key is simply the item ID)
 
     @Override
     protected void startUp() throws Exception
@@ -95,7 +89,7 @@ public class ChanceManPlugin extends Plugin
                 }
             }
         });
-        // Initialization of managers and UI will be handled in onGameTick.
+        // Managers and UI will be initialized in onGameTick.
     }
 
     @Override
@@ -121,7 +115,7 @@ public class ChanceManPlugin extends Plugin
 
     /**
      * Processes game ticks, initializing managers and UI when the local player is available,
-     * updating the roll animation, and cleaning up ground item tick data.
+     * updating the roll animation.
      *
      * @param event The game tick event.
      */
@@ -148,7 +142,6 @@ public class ChanceManPlugin extends Plugin
                     clientThread
             );
 
-            // Pass the rollAnimationManager reference to the panel.
             chanceManPanel = new ChanceManPanel(unlockedItemsManager, rolledItemsManager, itemManager, allTradeableItems, clientThread, rollAnimationManager);
 
             BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/net/runelite/client/plugins/chanceman/icon.png");
@@ -171,14 +164,11 @@ public class ChanceManPlugin extends Plugin
         {
             SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
         }
-
-        int currentTick = client.getTickCount();
-        groundItemTicks.entrySet().removeIf(entry -> entry.getValue() < currentTick);
     }
 
     /**
      * Handles the event when an item spawns on the ground.
-     * If the item is locked and has not yet been rolled, it enqueues a roll.
+     * If the item has not been rolled (by item ID), it enqueues a roll.
      *
      * @param event The item spawned event.
      */
@@ -199,39 +189,29 @@ public class ChanceManPlugin extends Plugin
         {
             return;
         }
-        // Check if the item has already been rolled once.
-        if (rolledItemsManager != null && rolledItemsManager.isRolled(itemId))
+        // Use the item ID as the unique key.
+        if (!rolledItemsManager.isRolled(itemId))
         {
-            return;
-        }
-        WorldPoint wp = event.getTile().getWorldLocation();
-        String key = wp.toString() + "_" + itemId;
-        int currentTick = client.getTickCount();
-        if (groundItemTicks.containsKey(key) && groundItemTicks.get(key) < currentTick)
-        {
-            return;
-        }
-        groundItemTicks.put(key, currentTick);
-        if (rollAnimationManager != null)
-        {
-            rollAnimationManager.enqueueRoll(itemId);
+            if (rollAnimationManager != null)
+            {
+                rollAnimationManager.enqueueRoll(itemId);
+            }
             rolledItemsManager.markRolled(itemId);
         }
     }
 
     /**
-     * Handles inventory changes. When items are added to the inventory (for example, via quest rewards),
-     * this method checks for locked items that have not been rolled before and enqueues a roll for each.
+     * Handles inventory changes. When items are added to the inventory,
+     * this method checks for items (by item ID) that have not been rolled and enqueues a roll.
      *
      * @param event The item container changed event.
      */
     @Subscribe
     public void onItemContainerChanged(ItemContainerChanged event)
     {
-        // Assuming container ID 93 corresponds to the inventory.
         if (event.getContainerId() == 93)
         {
-            // Iterate over all items in the inventory.
+            Set<Integer> processed = new HashSet<>();
             for (net.runelite.api.Item item : event.getItemContainer().getItems())
             {
                 int itemId = item.getId();
@@ -239,15 +219,14 @@ public class ChanceManPlugin extends Plugin
                 {
                     continue;
                 }
-                // If the item is locked and not yet rolled, trigger a roll.
-                if (unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(itemId)
-                        && rolledItemsManager != null && !rolledItemsManager.isRolled(itemId))
+                if (!processed.contains(itemId) && !rolledItemsManager.isRolled(itemId))
                 {
                     if (rollAnimationManager != null)
                     {
                         rollAnimationManager.enqueueRoll(itemId);
                     }
                     rolledItemsManager.markRolled(itemId);
+                    processed.add(itemId);
                 }
             }
         }
@@ -255,9 +234,8 @@ public class ChanceManPlugin extends Plugin
 
     /**
      * Handles menu option clicks.
-     * For ground items, it continues to block actions if locked.
-     * For inventory items, if the item is locked (i.e. not yet unlocked),
-     * only the "examine" and "drop" actions are allowed; all others are consumed.
+     * For ground items, it consumes actions if the item is locked.
+     * For inventory items, if the item is locked, only the "examine" and "drop" actions are allowed.
      *
      * @param event The menu option clicked event.
      */
@@ -305,8 +283,6 @@ public class ChanceManPlugin extends Plugin
             }
         }
     }
-
-
 
     private boolean isNormalWorld()
     {
