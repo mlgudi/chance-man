@@ -24,7 +24,7 @@ public class UnlockedItemsManager
 {
     private final Set<Integer> unlockedItems = Collections.synchronizedSet(new HashSet<>());
     private final String filePath;
-    private final Gson gson = new Gson();
+    private final Gson gson;
 
     // Single-thread executor for asynchronous saving
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
@@ -34,8 +34,10 @@ public class UnlockedItemsManager
      *
      * @param playerName The player's name.
      */
-    public UnlockedItemsManager(String playerName)
+    public UnlockedItemsManager(String playerName, Gson gson)
     {
+        this.gson = gson;
+
         String userHome = System.getProperty("user.home");
         filePath = userHome + File.separator + ".runelite" + File.separator +
                 "chanceman" + File.separator + playerName + File.separator + "chanceman_unlocked.json";

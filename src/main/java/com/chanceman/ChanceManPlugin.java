@@ -1,5 +1,6 @@
 package com.chanceman;
 
+import com.google.gson.Gson;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.WorldType;
@@ -60,6 +61,9 @@ public class ChanceManPlugin extends Plugin
 
     @Inject
     private ChanceManOverlay chanceManOverlay;
+
+    @Inject
+    private Gson gson;
 
     private UnlockedItemsManager unlockedItemsManager;
     private RolledItemsManager rolledItemsManager;
@@ -127,10 +131,10 @@ public class ChanceManPlugin extends Plugin
         if (client.getLocalPlayer() != null && chanceManPanel == null)
         {
             String playerName = client.getLocalPlayer().getName();
-            unlockedItemsManager = new UnlockedItemsManager(playerName);
+            unlockedItemsManager = new UnlockedItemsManager(playerName, gson);
             unlockedItemsManager.loadUnlockedItems();
 
-            rolledItemsManager = new RolledItemsManager(playerName);
+            rolledItemsManager = new RolledItemsManager(playerName, gson);
             rolledItemsManager.loadRolledItems();
 
             rollAnimationManager = new RollAnimationManager(

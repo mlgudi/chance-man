@@ -21,15 +21,17 @@ public class RolledItemsManager
 {
     private final Set<Integer> rolledItems = Collections.synchronizedSet(new HashSet<>());
     private final String filePath;
-    private final Gson gson = new Gson();
+    private final Gson gson;
 
     /**
      * Constructs a RolledItemsManager for a given player.
      *
      * @param playerName The player's name.
      */
-    public RolledItemsManager(String playerName)
+    public RolledItemsManager(String playerName, Gson gson)
     {
+        this.gson = gson;
+
         String userHome = System.getProperty("user.home");
         filePath = userHome + File.separator + ".runelite" + File.separator +
                 "chanceman" + File.separator + playerName + File.separator + "chanceman_rolled.json";
