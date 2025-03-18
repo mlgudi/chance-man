@@ -3,6 +3,8 @@ package com.chanceman;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.RuneLite;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
@@ -31,10 +33,10 @@ public class RolledItemsManager
     public RolledItemsManager(String playerName, Gson gson)
     {
         this.gson = gson;
-
-        String userHome = System.getProperty("user.home");
-        filePath = userHome + File.separator + ".runelite" + File.separator +
-                "chanceman" + File.separator + playerName + File.separator + "chanceman_rolled.json";
+        filePath = RuneLite.RUNELITE_DIR + File.separator +
+                "chanceman" + File.separator +
+                playerName + File.separator +
+                "chanceman_rolled.json";
     }
 
     /**

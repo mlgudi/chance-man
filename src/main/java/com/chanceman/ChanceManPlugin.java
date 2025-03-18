@@ -209,6 +209,12 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onItemContainerChanged(ItemContainerChanged event)
     {
+        // Check if the rolledItemsManager is initialized; if not, skip processing.
+        if (rolledItemsManager == null)
+        {
+            return;
+        }
+
         if (event.getContainerId() == 93)
         {
             Set<Integer> processed = new HashSet<>();
