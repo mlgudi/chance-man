@@ -13,6 +13,7 @@ import java.lang.reflect.Type;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 /**
  * Manages the set of rolled items.
@@ -24,20 +25,23 @@ public class RolledItemsManager
     private final Set<Integer> rolledItems = Collections.synchronizedSet(new HashSet<>());
     private final String filePath;
     private final Gson gson;
+    private final ExecutorService executor;
 
     /**
      * Constructs a RolledItemsManager for a given player.
      *
      * @param playerName The player's name.
      */
-    public RolledItemsManager(String playerName, Gson gson)
+    public RolledItemsManager(String playerName, Gson gson, ExecutorService executor)
     {
         this.gson = gson;
+        this.executor = executor;
         filePath = RuneLite.RUNELITE_DIR + File.separator +
                 "chanceman" + File.separator +
                 playerName + File.separator +
                 "chanceman_rolled.json";
     }
+
 
     /**
      * Checks if an item has been rolled.
@@ -66,25 +70,27 @@ public class RolledItemsManager
      */
     public void loadRolledItems()
     {
-        File file = new File(filePath);
-        if (!file.exists())
-        {
-            file.getParentFile().mkdirs();
-            return;
-        }
-        try (FileReader reader = new FileReader(file))
-        {
-            Type setType = new TypeToken<Set<Integer>>() {}.getType();
-            Set<Integer> loaded = gson.fromJson(reader, setType);
-            if (loaded != null)
+        executor.submit(() -> {
+            File file = new File(filePath);
+            if (!file.exists())
             {
-                rolledItems.addAll(loaded);
+                file.getParentFile().mkdirs();
+                return;
             }
-        }
-        catch (IOException e)
-        {
-            log.error("Error loading rolled items", e);
-        }
+            try (FileReader reader = new FileReader(file))
+            {
+                Type setType = new TypeToken<Set<Integer>>() {}.getType();
+                Set<Integer> loaded = gson.fromJson(reader, setType);
+                if (loaded != null)
+                {
+                    rolledItems.addAll(loaded);
+                }
+            }
+            catch (IOException e)
+            {
+                log.error("Error loading rolled items", e);
+            }
+        });
     }
 
     /**
@@ -92,16 +98,18 @@ public class RolledItemsManager
      */
     public synchronized void saveRolledItems()
     {
-        File file = new File(filePath);
-        file.getParentFile().mkdirs();
-        try (FileWriter writer = new FileWriter(file))
-        {
-            gson.toJson(rolledItems, writer);
-        }
-        catch (IOException e)
-        {
-            log.error("Error saving rolled items", e);
-        }
+        executor.submit(() -> {
+            File file = new File(filePath);
+            file.getParentFile().mkdirs();
+            try (FileWriter writer = new FileWriter(file))
+            {
+                gson.toJson(rolledItems, writer);
+            }
+            catch (IOException e)
+            {
+                log.error("Error saving rolled items", e);
+            }
+        });
     }
 
     /**

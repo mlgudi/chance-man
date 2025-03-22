@@ -8,7 +8,8 @@ import net.runelite.client.ui.PluginPanel;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.event.ActionEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
@@ -36,6 +37,9 @@ public class ChanceManPanel extends PluginPanel
     private final JPanel rolledPanel = new JPanel();
     private final JPanel unlockedPanel = new JPanel();
     private final JButton rollButton = new JButton("Roll");
+
+    // Holds the search text
+    private String searchText = "";
 
     /**
      * Constructs a ChanceManPanel.
@@ -70,14 +74,24 @@ public class ChanceManPanel extends PluginPanel
      */
     private void init()
     {
-        // Use BorderLayout so that header and Roll button remain fixed.
+        // Use BorderLayout so that header, search bar, and Roll button remain fixed.
         setLayout(new BorderLayout(0, 0));
         setBorder(new EmptyBorder(10, 10, 10, 10));
         setBackground(new Color(45, 45, 45));
 
         // Header at the top (NORTH)
         JPanel headerPanel = buildHeaderPanel();
-        add(headerPanel, BorderLayout.NORTH);
+
+        // Search bar for filtering items
+        JPanel searchBarPanel = buildSearchBar();
+
+        // Combine header and search bar into a top panel
+        JPanel topPanel = new JPanel();
+        topPanel.setLayout(new BoxLayout(topPanel, BoxLayout.Y_AXIS));
+        topPanel.setBackground(getBackground());
+        topPanel.add(headerPanel);
+        topPanel.add(searchBarPanel);
+        add(topPanel, BorderLayout.NORTH);
 
         // Center: a panel with two columns side by side (rolled & unlocked)
         // Each column is wrapped in its own JScrollPane so that only the column scrolls.
@@ -120,8 +134,6 @@ public class ChanceManPanel extends PluginPanel
         // Add both containers to the columns panel
         columnsPanel.add(rolledContainer);
         columnsPanel.add(unlockedContainer);
-
-        // Add the columns panel to the center region (it will not scroll as a whole)
         add(columnsPanel, BorderLayout.CENTER);
 
         // Roll button at the bottom (SOUTH)
@@ -156,12 +168,56 @@ public class ChanceManPanel extends PluginPanel
     }
 
     /**
+     * Builds the search bar panel
+     */
+    private JPanel buildSearchBar()
+    {
+        JPanel searchBarPanel = new JPanel(new BorderLayout());
+        searchBarPanel.setBackground(new Color(45, 45, 45));
+        searchBarPanel.setBorder(new EmptyBorder(5, 5, 5, 5));
+
+        // Create a container for the search icon and search field
+        JPanel searchContainer = new JPanel(new BorderLayout());
+        searchContainer.setBackground(new Color(30, 30, 30));
+        searchContainer.setBorder(BorderFactory.createEmptyBorder(2, 5, 2, 5));
+
+        // Search icon
+        JLabel searchIcon = new JLabel("🔍");
+        searchIcon.setForeground(new Color(200, 200, 200));
+        searchIcon.setBorder(new EmptyBorder(0, 5, 0, 5));
+
+        // Search field
+        JTextField searchField = new JTextField();
+        searchField.setBackground(new Color(30, 30, 30));
+        searchField.setForeground(Color.LIGHT_GRAY);
+        searchField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
+        searchField.setCaretColor(Color.LIGHT_GRAY);
+
+        // Listen for key releases to trigger real-time filtering
+        searchField.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                SwingUtilities.invokeLater(() -> {
+                    searchText = searchField.getText().toLowerCase();
+                    updatePanel();
+                });
+            }
+        });
+
+        searchContainer.add(searchIcon, BorderLayout.WEST);
+        searchContainer.add(searchField, BorderLayout.CENTER);
+        searchBarPanel.add(searchContainer, BorderLayout.CENTER);
+
+        return searchBarPanel;
+    }
+
+    /**
      * Triggers a manual roll animation when the Roll button is clicked.
      * If a roll is already in progress or if there are no locked items, it does nothing.
      *
      * @param e The action event.
      */
-    private void performManualRoll(ActionEvent e)
+    private void performManualRoll(java.awt.event.ActionEvent e)
     {
         // Prevent triggering if a roll is already in progress.
         if (rollAnimationManager.isRolling())
@@ -194,50 +250,75 @@ public class ChanceManPanel extends PluginPanel
 
     /**
      * Updates the panel UI with the current rolled and unlocked items.
+     * This method fetches item definitions on the client thread to avoid thread errors,
+     * then updates the UI on the Swing thread.
      */
     public void updatePanel()
     {
-        SwingUtilities.invokeLater(() ->
-        {
-            Set<Integer> rolled = rolledItemsManager.getRolledItems();
-            Set<Integer> unlocked = unlockedItemsManager.getUnlockedItems();
-
-            rolledPanel.removeAll();
-            for (Integer id : rolled)
+        clientThread.invokeLater(() -> {
+            List<Integer> filteredRolled = new ArrayList<>();
+            for (Integer id : rolledItemsManager.getRolledItems())
             {
-                ImageIcon icon = getItemIcon(id);
-                if (icon != null)
+                ItemComposition comp = itemManager.getItemComposition(id);
+                if (comp != null)
                 {
-                    JLabel label = new JLabel(icon);
-                    label.setToolTipText("Loading...");
-                    rolledPanel.add(label);
-                    getItemNameAsync(id, name -> {
-                        label.setToolTipText(name);
-                        label.repaint();
-                    });
+                    String name = comp.getName().toLowerCase();
+                    if (searchText.isEmpty() || name.contains(searchText))
+                    {
+                        filteredRolled.add(id);
+                    }
                 }
             }
-
-            unlockedPanel.removeAll();
-            for (Integer id : unlocked)
+            List<Integer> filteredUnlocked = new ArrayList<>();
+            for (Integer id : unlockedItemsManager.getUnlockedItems())
             {
-                ImageIcon icon = getItemIcon(id);
-                if (icon != null)
+                ItemComposition comp = itemManager.getItemComposition(id);
+                if (comp != null)
                 {
-                    JLabel label = new JLabel(icon);
-                    label.setToolTipText("Loading...");
-                    unlockedPanel.add(label);
-                    getItemNameAsync(id, name -> {
-                        label.setToolTipText(name);
-                        label.repaint();
-                    });
+                    String name = comp.getName().toLowerCase();
+                    if (searchText.isEmpty() || name.contains(searchText))
+                    {
+                        filteredUnlocked.add(id);
+                    }
                 }
             }
-
-            rolledPanel.revalidate();
-            rolledPanel.repaint();
-            unlockedPanel.revalidate();
-            unlockedPanel.repaint();
+            // Update UI on the Swing thread
+            SwingUtilities.invokeLater(() -> {
+                rolledPanel.removeAll();
+                for (Integer id : filteredRolled)
+                {
+                    ImageIcon icon = getItemIcon(id);
+                    if (icon != null)
+                    {
+                        JLabel label = new JLabel(icon);
+                        label.setToolTipText("Loading...");
+                        rolledPanel.add(label);
+                        getItemNameAsync(id, name -> {
+                            label.setToolTipText(name);
+                            label.repaint();
+                        });
+                    }
+                }
+                unlockedPanel.removeAll();
+                for (Integer id : filteredUnlocked)
+                {
+                    ImageIcon icon = getItemIcon(id);
+                    if (icon != null)
+                    {
+                        JLabel label = new JLabel(icon);
+                        label.setToolTipText("Loading...");
+                        unlockedPanel.add(label);
+                        getItemNameAsync(id, name -> {
+                            label.setToolTipText(name);
+                            label.repaint();
+                        });
+                    }
+                }
+                rolledPanel.revalidate();
+                rolledPanel.repaint();
+                unlockedPanel.revalidate();
+                unlockedPanel.repaint();
+            });
         });
     }
 

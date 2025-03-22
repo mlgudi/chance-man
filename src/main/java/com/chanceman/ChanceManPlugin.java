@@ -23,6 +23,8 @@ import javax.inject.Inject;
 import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * ChanceManPlugin locks tradeable items until unlocked via a random roll.
@@ -67,9 +69,10 @@ public class ChanceManPlugin extends Plugin
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
 
+    private ExecutorService fileExecutor;
+
     // List of tradeable item IDs (excluding coins)
     private final List<Integer> allTradeableItems = new ArrayList<>();
-    // (groundItemTicks no longer used since our unique key is simply the item ID)
 
     @Override
     protected void startUp() throws Exception
@@ -78,6 +81,8 @@ public class ChanceManPlugin extends Plugin
         {
             return;
         }
+
+        fileExecutor = Executors.newSingleThreadExecutor();
 
         clientThread.invokeLater(() -> {
             for (int i = 0; i < 30000; i++)
@@ -107,9 +112,9 @@ public class ChanceManPlugin extends Plugin
         {
             rollAnimationManager.shutdown();
         }
-        if (unlockedItemsManager != null)
+        if (fileExecutor != null)
         {
-            unlockedItemsManager.shutdown();
+            fileExecutor.shutdownNow();
         }
     }
 
@@ -125,10 +130,10 @@ public class ChanceManPlugin extends Plugin
         if (client.getLocalPlayer() != null && chanceManPanel == null)
         {
             String playerName = client.getLocalPlayer().getName();
-            unlockedItemsManager = new UnlockedItemsManager(playerName, gson);
+            unlockedItemsManager = new UnlockedItemsManager(playerName, gson, fileExecutor);
             unlockedItemsManager.loadUnlockedItems();
 
-            rolledItemsManager = new RolledItemsManager(playerName, gson);
+            rolledItemsManager = new RolledItemsManager(playerName, gson, fileExecutor);
             rolledItemsManager.loadRolledItems();
 
             rollAnimationManager = new RollAnimationManager(

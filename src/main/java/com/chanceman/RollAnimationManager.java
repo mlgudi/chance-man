@@ -81,16 +81,16 @@ public class RollAnimationManager
     {
         if (!isRolling && !rollQueue.isEmpty())
         {
-            int dropItemId = rollQueue.poll();
+            int queuedItemId = rollQueue.poll();
             isRolling = true;
-            executor.submit(this::performRoll);
+            executor.submit(() -> performRoll(queuedItemId));
         }
     }
 
     /**
      * Performs the roll animation, unlocking the final item and sending a chat message.
      */
-    private void performRoll()
+    private void performRoll(int queuedItemId)
     {
         overlay.startRollAnimation(0, rollDuration, this::getRandomLockedItem);
         try {
@@ -100,10 +100,12 @@ public class RollAnimationManager
         }
         int finalRolledItem = overlay.getFinalItem();
         unlockedManager.unlockItem(finalRolledItem);
-        clientThread.invokeLater(() -> {
+        // Using clientThread.invoke since the chat message queue is thread-safe
+        clientThread.invoke(() -> {
             String message = new ChatMessageBuilder()
                     .append(ChatColorType.HIGHLIGHT)
-                    .append("Unlocked " + plugin.getItemName(finalRolledItem))
+                    .append("Unlocked " + plugin.getItemName(finalRolledItem) + " by rolling " +
+                            plugin.getItemName(queuedItemId))
                     .build();
             chatMessageManager.queue(QueuedMessage.builder()
                     .type(net.runelite.api.ChatMessageType.GAMEMESSAGE)

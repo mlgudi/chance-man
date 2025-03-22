@@ -27,18 +27,17 @@ public class UnlockedItemsManager
     private final Set<Integer> unlockedItems = Collections.synchronizedSet(new HashSet<>());
     private final String filePath;
     private final Gson gson;
-
-    // Single-thread executor for asynchronous saving
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor;
 
     /**
      * Constructs an UnlockedItemsManager for a given player.
      *
      * @param playerName The player's name.
      */
-    public UnlockedItemsManager(String playerName, Gson gson)
+    public UnlockedItemsManager(String playerName, Gson gson, ExecutorService executor)
     {
         this.gson = gson;
+        this.executor = executor;
         filePath = RuneLite.RUNELITE_DIR + File.separator +
                 "chanceman" + File.separator +
                 playerName + File.separator +
@@ -72,25 +71,27 @@ public class UnlockedItemsManager
      */
     public void loadUnlockedItems()
     {
-        File file = new File(filePath);
-        if (!file.exists())
-        {
-            file.getParentFile().mkdirs();
-            return;
-        }
-        try (FileReader reader = new FileReader(file))
-        {
-            Type setType = new TypeToken<Set<Integer>>() {}.getType();
-            Set<Integer> loaded = gson.fromJson(reader, setType);
-            if (loaded != null)
+        executor.submit(() -> {
+            File file = new File(filePath);
+            if (!file.exists())
             {
-                unlockedItems.addAll(loaded);
+                file.getParentFile().mkdirs();
+                return;
             }
-        }
-        catch (IOException e)
-        {
-            log.error("Error loading unlocked items", e);
-        }
+            try (FileReader reader = new FileReader(file))
+            {
+                Type setType = new TypeToken<Set<Integer>>() {}.getType();
+                Set<Integer> loaded = gson.fromJson(reader, setType);
+                if (loaded != null)
+                {
+                    unlockedItems.addAll(loaded);
+                }
+            }
+            catch (IOException e)
+            {
+                log.error("Error loading unlocked items", e);
+            }
+        });
     }
 
     /**
@@ -120,13 +121,5 @@ public class UnlockedItemsManager
     public Set<Integer> getUnlockedItems()
     {
         return Collections.unmodifiableSet(unlockedItems);
-    }
-
-    /**
-     * Shuts down the asynchronous executor service.
-     */
-    public void shutdown()
-    {
-        executor.shutdownNow();
     }
 }
