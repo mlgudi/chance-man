@@ -158,6 +158,9 @@ public class ItemsFilter {
         blocked.add("trailblazer relic hunter (t1)");
         blocked.add("trailblazer relic hunter (t2)");
         blocked.add("trailblazer relic hunter (t3)");
+        blocked.add("trailblazer hood (t1)");
+        blocked.add("trailblazer hood (t2)");
+        blocked.add("trailblazer hood (t3)");
         blocked.add("shattered banner");
         blocked.add("shattered teleport scroll");
         blocked.add("shattered relics variety ornament kit");
