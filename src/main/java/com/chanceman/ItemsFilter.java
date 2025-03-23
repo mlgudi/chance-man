@@ -20,6 +20,10 @@ public class ItemsFilter {
         // Initialize the blocked items set.
         Set<String> blocked = new HashSet<>();
         blocked.add("blighted overload");
+        blocked.add("blighted overload (1)");
+        blocked.add("blighted overload (2)");
+        blocked.add("blighted overload (3)");
+        blocked.add("blighted overload (4)");
         blocked.add("chitin");
         blocked.add("corrupted armadyl godsword");
         blocked.add("corrupted dark bow");
@@ -133,6 +137,10 @@ public class ItemsFilter {
         blocked.add("zuriel's robe bottom (deadman mode)");
         blocked.add("zuriel's robe top (deadman mode)");
         blocked.add("zuriel's staff (deadman mode)");
+
+        // Temporary items removed from the game
+        blocked.add("osman's report");
+        
         // Additional blocked items (twisted, trailblazer, shattered, etc.)
         blocked.add("twisted banner");
         blocked.add("twisted teleport scroll");
@@ -150,6 +158,9 @@ public class ItemsFilter {
         blocked.add("trailblazer relic hunter (t1)");
         blocked.add("trailblazer relic hunter (t2)");
         blocked.add("trailblazer relic hunter (t3)");
+        blocked.add("trailblazer hood (t1)");
+        blocked.add("trailblazer hood (t2)");
+        blocked.add("trailblazer hood (t3)");
         blocked.add("shattered banner");
         blocked.add("shattered teleport scroll");
         blocked.add("shattered relics variety ornament kit");
