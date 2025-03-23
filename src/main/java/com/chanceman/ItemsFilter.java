@@ -137,15 +137,16 @@ public class ItemsFilter {
         blocked.add("zuriel's robe bottom (deadman mode)");
         blocked.add("zuriel's robe top (deadman mode)");
         blocked.add("zuriel's staff (deadman mode)");
-
-        // Temporary items removed from the game
         blocked.add("osman's report");
-        
+
         // Additional blocked items (twisted, trailblazer, shattered, etc.)
         blocked.add("twisted banner");
         blocked.add("twisted teleport scroll");
         blocked.add("twisted blueprints");
         blocked.add("twisted horns");
+        blocked.add("twisted coat (t1)");
+        blocked.add("twisted coat (t2)");
+        blocked.add("twisted coat (t3)");
         blocked.add("twisted relic hunter (t1)");
         blocked.add("twisted relic hunter (t2)");
         blocked.add("twisted relic hunter (t3)");
@@ -161,6 +162,15 @@ public class ItemsFilter {
         blocked.add("trailblazer hood (t1)");
         blocked.add("trailblazer hood (t2)");
         blocked.add("trailblazer hood (t3)");
+        blocked.add("trailblazer top (t1)");
+        blocked.add("trailblazer top (t2)");
+        blocked.add("trailblazer top (t3)");
+        blocked.add("trailblazer trousers (t1)");
+        blocked.add("trailblazer trousers (t2)");
+        blocked.add("trailblazer trousers (t3)");
+        blocked.add("trailblazer boots (t1)");
+        blocked.add("trailblazer boots (t2)");
+        blocked.add("trailblazer boots (t3)");
         blocked.add("shattered banner");
         blocked.add("shattered teleport scroll");
         blocked.add("shattered relics variety ornament kit");
