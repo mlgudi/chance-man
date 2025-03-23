@@ -137,6 +137,10 @@ public class ItemsFilter {
         blocked.add("zuriel's robe bottom (deadman mode)");
         blocked.add("zuriel's robe top (deadman mode)");
         blocked.add("zuriel's staff (deadman mode)");
+
+        // Temporary items removed from the game
+        blocked.add("osman's report");
+        
         // Additional blocked items (twisted, trailblazer, shattered, etc.)
         blocked.add("twisted banner");
         blocked.add("twisted teleport scroll");
