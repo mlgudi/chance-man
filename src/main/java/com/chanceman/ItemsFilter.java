@@ -20,6 +20,10 @@ public class ItemsFilter {
         // Initialize the blocked items set.
         Set<String> blocked = new HashSet<>();
         blocked.add("blighted overload");
+        blocked.add("blighted overload (1)");
+        blocked.add("blighted overload (2)");
+        blocked.add("blighted overload (3)");
+        blocked.add("blighted overload (4)");
         blocked.add("chitin");
         blocked.add("corrupted armadyl godsword");
         blocked.add("corrupted dark bow");
