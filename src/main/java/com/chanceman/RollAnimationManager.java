@@ -27,8 +27,8 @@ public class RollAnimationManager
     private final ChanceManOverlay overlay;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isRolling = false;
-    private final int rollDuration = 8000; // Continuous phase duration (ms)
-    private final int highlightDuration = 2000; // Highlight phase (ms)
+    private final int rollDuration = 4000; // Continuous phase duration (ms)
+    private final int highlightDuration = 1500; // Highlight phase (ms)
     private final List<Integer> allTradeableItems;
     private final Random random = new Random();
     private final ItemManager itemManager;

@@ -1,13 +1,16 @@
 package com.chanceman;
 
 import com.google.gson.Gson;
+import com.google.inject.Provides;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.WorldType;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemSpawned;
 import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.ScriptPostFired;
 import net.runelite.api.TileItem;
+import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.game.ItemManager;
@@ -18,61 +21,58 @@ import net.runelite.client.ui.NavigationButton;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ImageUtil;
 import net.runelite.client.eventbus.Subscribe;
-
+import net.runelite.client.config.ConfigManager;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-/**
- * ChanceManPlugin locks tradeable items until unlocked via a random roll.
- * It handles the initialization of managers for rolled and unlocked items,
- * as well as the UI overlay and panel.
- */
 @PluginDescriptor(
         name = "ChanceMan",
         description = "Locks tradeable items until unlocked via a random roll.",
         tags = {"osrs", "chance", "roll", "lock", "unlock"}
 )
+@Singleton
 public class ChanceManPlugin extends Plugin
 {
     @Inject
     private Client client;
-
     @Inject
     private ClientThread clientThread;
-
     @Inject
     private ClientToolbar clientToolbar;
-
     @Inject
     private OverlayManager overlayManager;
-
     @Inject
     private ChatMessageManager chatMessageManager;
-
     @Inject
     private ItemManager itemManager;
-
     @Inject
     private ChanceManOverlay chanceManOverlay;
-
     @Inject
     private Gson gson;
+    @Inject
+    private ChanceManConfig config;
+    @Inject
+    private ConfigManager configManager;
 
     private UnlockedItemsManager unlockedItemsManager;
     private RolledItemsManager rolledItemsManager;
     private RollAnimationManager rollAnimationManager;
-
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
-
     private ExecutorService fileExecutor;
-
-    // List of tradeable item IDs (excluding coins)
     private final List<Integer> allTradeableItems = new ArrayList<>();
+    private static final int GE_SEARCH_BUILD_SCRIPT = 751;
+
+    @Provides
+    ChanceManConfig provideConfig(ConfigManager configManager)
+    {
+        return configManager.getConfig(ChanceManConfig.class);
+    }
 
     @Override
     protected void startUp() throws Exception
@@ -81,20 +81,9 @@ public class ChanceManPlugin extends Plugin
         {
             return;
         }
-
         fileExecutor = Executors.newSingleThreadExecutor();
-
-        clientThread.invokeLater(() -> {
-            for (int i = 0; i < 30000; i++)
-            {
-                ItemComposition comp = itemManager.getItemComposition(i);
-                if (comp != null && comp.isTradeable() && i != 995)
-                {
-                    allTradeableItems.add(i);
-                }
-            }
-        });
-        // Managers and UI will be initialized in onGameTick.
+        refreshTradeableItems();
+        // Managers and UI are initialized on the first game tick.
     }
 
     @Override
@@ -119,6 +108,52 @@ public class ChanceManPlugin extends Plugin
     }
 
     /**
+     * Refreshes the list of tradeable item IDs based on the current configuration.
+     * Runs on the client thread. Iterates through item IDs 0–29999 and adds an item to allTradeableItems if:
+     * - The item is tradeable, is not coins (ID 995), and is not blocked by ItemsFilter.
+     * - If the "freeToPlay" option is enabled, members-only items are skipped.
+     * If the chanceManPanel is initialized, the panel is updated to reflect the refreshed list.
+     */
+    private void refreshTradeableItems()
+    {
+        clientThread.invokeLater(() -> {
+            allTradeableItems.clear();
+            int count = 0;
+            for (int i = 0; i < 30000; i++)
+            {
+                ItemComposition comp = itemManager.getItemComposition(i);
+                if (comp != null && comp.isTradeable() && i != 995 && i != 13190 && i != 13191
+                        && !ItemsFilter.isBlocked(comp.getName()))
+                {
+                    if (config.freeToPlay() && comp.isMembers())
+                    {
+                        continue;
+                    }
+                    allTradeableItems.add(i);
+                    count++;
+                }
+            }
+            if (chanceManPanel != null) {
+                SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
+            }
+        });
+    }
+
+    /**
+     * Listens for configuration changes
+     * When the "freeToPlay" option changes, it refreshes the list of tradeable items.
+     */
+    @Subscribe
+    public void onConfigChanged(net.runelite.client.events.ConfigChanged event) {
+        if (!event.getGroup().equals("chanceman")) {
+            return;
+        }
+        if (event.getKey().equals("freeToPlay")) {
+            refreshTradeableItems();
+        }
+    }
+
+    /**
      * Processes game ticks, initializing managers and UI when the local player is available,
      * updating the roll animation.
      *
@@ -132,10 +167,8 @@ public class ChanceManPlugin extends Plugin
             String playerName = client.getLocalPlayer().getName();
             unlockedItemsManager = new UnlockedItemsManager(playerName, gson, fileExecutor);
             unlockedItemsManager.loadUnlockedItems();
-
             rolledItemsManager = new RolledItemsManager(playerName, gson, fileExecutor);
             rolledItemsManager.loadRolledItems();
-
             rollAnimationManager = new RollAnimationManager(
                     unlockedItemsManager,
                     chanceManOverlay,
@@ -146,9 +179,14 @@ public class ChanceManPlugin extends Plugin
                     this,
                     clientThread
             );
-
-            chanceManPanel = new ChanceManPanel(unlockedItemsManager, rolledItemsManager, itemManager, allTradeableItems, clientThread, rollAnimationManager);
-
+            chanceManPanel = new ChanceManPanel(
+                    unlockedItemsManager,
+                    rolledItemsManager,
+                    itemManager,
+                    allTradeableItems,
+                    clientThread,
+                    rollAnimationManager
+            );
             BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/net/runelite/client/plugins/chanceman/icon.png");
             navButton = NavigationButton.builder()
                     .tooltip("ChanceMan")
@@ -159,15 +197,49 @@ public class ChanceManPlugin extends Plugin
             clientToolbar.addNavigation(navButton);
             overlayManager.add(chanceManOverlay);
         }
-
         if (rollAnimationManager != null)
         {
             rollAnimationManager.process();
         }
-
         if (chanceManPanel != null)
         {
             SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
+        }
+    }
+
+    /**
+     * Listens for the GE search build script to be fired (script ID 751).
+     * When triggered, it calls killSearchResults() to process the GE search results
+     * and block any offers for items that are not unlocked.
+     */
+    @Subscribe
+    public void onScriptPostFired(ScriptPostFired event) {
+        if (event.getScriptId() == GE_SEARCH_BUILD_SCRIPT) {
+            killSearchResults();
+        }
+    }
+
+    /**
+     * Retrieves the GE search results widget (ComponentID.CHATBOX_GE_SEARCH_RESULTS 162:51) and processes its dynamic children.
+     * For each offer, if the offered item (child index 2) is locked, it hides the offer and reduces its opacity.
+     */
+    private void killSearchResults() {
+        Widget geSearchResults = client.getWidget(162, 51);
+        if (geSearchResults == null) {
+            return;
+        }
+        Widget[] children = geSearchResults.getDynamicChildren();
+        if (children == null || children.length < 2 || children.length % 3 != 0) {
+            return;
+        }
+        Set<Integer> unlocked = unlockedItemsManager.getUnlockedItems();
+        for (int i = 0; i < children.length; i += 3) {
+            int offerItemId = children[i + 2].getItemId();
+            if (!unlocked.contains(offerItemId)) {
+                children[i].setHidden(true);
+                children[i + 1].setOpacity(70);
+                children[i + 2].setOpacity(70);
+            }
         }
     }
 
@@ -186,7 +258,15 @@ public class ChanceManPlugin extends Plugin
         }
         TileItem tileItem = (TileItem) event.getItem();
         int itemId = tileItem.getId();
-        if (!isTradeable(itemId) || isCoin(itemId))
+        ItemComposition comp = itemManager.getItemComposition(itemId);
+        String name = (comp != null && comp.getName() != null) ? comp.getName() : tileItem.toString();
+        if (name.toLowerCase().contains("ensouled")) {
+            int mappedId = ItemsFilter.getEnsouledHeadId(name);
+            if (mappedId != ItemsFilter.DEFAULT_ENSOULED_HEAD_ID) {
+                itemId = mappedId;
+            }
+        }
+        if (!isTradeable(itemId) || isCoin(itemId) || isBond(itemId))
         {
             return;
         }
@@ -194,7 +274,10 @@ public class ChanceManPlugin extends Plugin
         {
             return;
         }
-        // Use the item ID as the unique key.
+        if (rolledItemsManager == null)
+        {
+            return;
+        }
         if (!rolledItemsManager.isRolled(itemId))
         {
             if (rollAnimationManager != null)
@@ -214,19 +297,17 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onItemContainerChanged(ItemContainerChanged event)
     {
-        // Check if the rolledItemsManager is initialized; if not, skip processing.
         if (rolledItemsManager == null)
         {
             return;
         }
-
         if (event.getContainerId() == 93)
         {
             Set<Integer> processed = new HashSet<>();
             for (net.runelite.api.Item item : event.getItemContainer().getItems())
             {
                 int itemId = item.getId();
-                if (!isTradeable(itemId) || isCoin(itemId))
+                if (!isTradeable(itemId) || isCoin(itemId) || isBond(itemId))
                 {
                     continue;
                 }
@@ -254,36 +335,33 @@ public class ChanceManPlugin extends Plugin
     public void onMenuOptionClicked(net.runelite.api.events.MenuOptionClicked event)
     {
         String option = event.getMenuEntry().getOption().toLowerCase();
-
         // Handle ground item actions.
         if (event.getMenuAction() != null &&
                 (event.getMenuAction().toString().contains("GROUND_ITEM") ||
                         option.contains("take") || option.contains("pick-up") || option.contains("pickup")))
         {
             int groundItemId = event.getId() != -1 ? event.getId() : event.getMenuEntry().getItemId();
-            if (isTradeable(groundItemId) && !isCoin(groundItemId)
+            if (isTradeable(groundItemId) && !isCoin(groundItemId) && !isBond(groundItemId)
                     && unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(groundItemId))
             {
                 event.consume();
                 return;
             }
         }
-
         // Handle inventory item actions.
         if (event.getMenuEntry().getItemId() != -1)
         {
             int itemId = event.getMenuEntry().getItemId();
             String itemName = getItemName(itemId).toLowerCase();
-
             // Skip non-tradeable items, coins, coin pouches, and clue scrolls.
             if (!isTradeable(itemId)
                     || isCoin(itemId)
+                    || isBond(itemId)
                     || itemName.contains("coin pouch")
                     || itemName.contains("clue scroll"))
             {
                 return;
             }
-
             // For locked inventory items, allow only "examine" and "drop" actions.
             if (unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(itemId))
             {
@@ -313,6 +391,11 @@ public class ChanceManPlugin extends Plugin
     private boolean isCoin(int itemId)
     {
         return itemId == 995;
+    }
+
+    private boolean isBond(int itemId)
+    {
+        return itemId == 13191 || itemId == 13190;
     }
 
     public String getItemName(int itemId)
