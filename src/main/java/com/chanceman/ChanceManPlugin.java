@@ -67,6 +67,7 @@ public class ChanceManPlugin extends Plugin
     private ExecutorService fileExecutor;
     private final List<Integer> allTradeableItems = new ArrayList<>();
     private static final int GE_SEARCH_BUILD_SCRIPT = 751;
+    private boolean itemsInitialized = false;
 
     @Provides
     ChanceManConfig provideConfig(ConfigManager configManager)
@@ -162,7 +163,7 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
-        if (client.getLocalPlayer() != null && chanceManPanel == null)
+        if (client.getLocalPlayer() != null && !itemsInitialized)
         {
             String playerName = client.getLocalPlayer().getName();
             unlockedItemsManager = new UnlockedItemsManager(playerName, gson, fileExecutor);
@@ -196,6 +197,8 @@ public class ChanceManPlugin extends Plugin
                     .build();
             clientToolbar.addNavigation(navButton);
             overlayManager.add(chanceManOverlay);
+            refreshTradeableItems(); // Refresh once after initialization.
+            itemsInitialized = true;
         }
         if (rollAnimationManager != null)
         {
