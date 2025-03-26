@@ -1,5 +1,6 @@
 package com.chanceman;
 
+import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.client.chat.ChatColorType;
 import net.runelite.client.chat.ChatMessageBuilder;
@@ -8,6 +9,7 @@ import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.callback.ClientThread;
 
+import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -102,15 +104,10 @@ public class RollAnimationManager
         unlockedManager.unlockItem(finalRolledItem);
         // Using clientThread.invoke since the chat message queue is thread-safe
         clientThread.invoke(() -> {
-            String message = new ChatMessageBuilder()
-                    .append(ChatColorType.HIGHLIGHT)
-                    .append("Unlocked " + plugin.getItemName(finalRolledItem) + " by rolling " +
-                            plugin.getItemName(queuedItemId))
-                    .build();
-            chatMessageManager.queue(QueuedMessage.builder()
-                    .type(net.runelite.api.ChatMessageType.GAMEMESSAGE)
-                    .runeLiteFormattedMessage(message)
-                    .build());
+            String message = "Unlocked " + "<col=00ff00>" + plugin.getItemName(finalRolledItem) + "</col>"
+                    + " by rolling " + "<col=ff0000>" + plugin.getItemName(queuedItemId) + "</col>";
+
+            client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
         });
         isRolling = false;
     }

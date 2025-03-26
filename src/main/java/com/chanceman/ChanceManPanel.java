@@ -41,6 +41,10 @@ public class ChanceManPanel extends PluginPanel
     // Holds the search text
     private String searchText = "";
 
+    // Count labels
+    private final JLabel rolledCountLabel = new JLabel("Rolled: 0/0");
+    private final JLabel unlockedCountLabel = new JLabel("Unlocked: 0/0");
+
     /**
      * Constructs a ChanceManPanel.
      *
@@ -106,7 +110,6 @@ public class ChanceManPanel extends PluginPanel
                 JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
                 JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
         );
-        // Optionally set a preferred size on the scroll pane (e.g., width)
         rolledScrollPane.setPreferredSize(new Dimension(150, 300));
 
         // Rolled container with titled border
@@ -136,12 +139,30 @@ public class ChanceManPanel extends PluginPanel
         columnsPanel.add(unlockedContainer);
         add(columnsPanel, BorderLayout.CENTER);
 
-        // Roll button at the bottom (SOUTH)
+        // Build a bottom panel that stacks two rows: one for the count labels, one for the Roll button
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.setLayout(new BoxLayout(bottomPanel, BoxLayout.Y_AXIS));
+        bottomPanel.setBackground(getBackground());
+
+        // Row 1: Count labels
+        JPanel countersPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        countersPanel.setBackground(getBackground());
+        countersPanel.add(rolledCountLabel);
+        countersPanel.add(Box.createHorizontalStrut(15)); // optional spacing
+        countersPanel.add(unlockedCountLabel);
+
+        // Row 2: Roll button
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
         buttonPanel.setBackground(getBackground());
         rollButton.addActionListener(this::performManualRoll);
         buttonPanel.add(rollButton);
-        add(buttonPanel, BorderLayout.SOUTH);
+
+        // Add both rows to the bottom panel
+        bottomPanel.add(countersPanel);
+        bottomPanel.add(buttonPanel);
+
+        // Place the bottom panel at the SOUTH of the main layout
+        add(bottomPanel, BorderLayout.SOUTH);
 
         // Populate the UI
         updatePanel();
@@ -250,12 +271,14 @@ public class ChanceManPanel extends PluginPanel
 
     /**
      * Updates the panel UI with the current rolled and unlocked items.
+     * Updates count panel with rolled/unlocked item amounts.
      * This method fetches item definitions on the client thread to avoid thread errors,
      * then updates the UI on the Swing thread.
      */
     public void updatePanel()
     {
-        clientThread.invokeLater(() -> {
+        clientThread.invokeLater(() ->
+        {
             List<Integer> filteredRolled = new ArrayList<>();
             for (Integer id : rolledItemsManager.getRolledItems())
             {
@@ -269,6 +292,7 @@ public class ChanceManPanel extends PluginPanel
                     }
                 }
             }
+
             List<Integer> filteredUnlocked = new ArrayList<>();
             for (Integer id : unlockedItemsManager.getUnlockedItems())
             {
@@ -282,8 +306,20 @@ public class ChanceManPanel extends PluginPanel
                     }
                 }
             }
-            // Update UI on the Swing thread
-            SwingUtilities.invokeLater(() -> {
+
+            // Count how many items total, rolled, and unlocked
+            int totalTrackable = allTradeableItems.size();
+            int rolledCount = rolledItemsManager.getRolledItems().size();
+            int unlockedCount = unlockedItemsManager.getUnlockedItems().size();
+
+            // Update the UI on the Swing thread
+            SwingUtilities.invokeLater(() ->
+            {
+                // Update the labels: "Rolled X/Y" and "Unlocked X/Y"
+                rolledCountLabel.setText("Rolled: " + rolledCount + "/" + totalTrackable);
+                unlockedCountLabel.setText("Unlocked: " + unlockedCount + "/" + totalTrackable);
+
+                // Rebuild the rolled panel
                 rolledPanel.removeAll();
                 for (Integer id : filteredRolled)
                 {
@@ -293,12 +329,17 @@ public class ChanceManPanel extends PluginPanel
                         JLabel label = new JLabel(icon);
                         label.setToolTipText("Loading...");
                         rolledPanel.add(label);
-                        getItemNameAsync(id, name -> {
+
+                        // Asynchronously get item name for the tooltip
+                        getItemNameAsync(id, name ->
+                        {
                             label.setToolTipText(name);
                             label.repaint();
                         });
                     }
                 }
+
+                // Rebuild the unlocked panel
                 unlockedPanel.removeAll();
                 for (Integer id : filteredUnlocked)
                 {
@@ -308,12 +349,17 @@ public class ChanceManPanel extends PluginPanel
                         JLabel label = new JLabel(icon);
                         label.setToolTipText("Loading...");
                         unlockedPanel.add(label);
-                        getItemNameAsync(id, name -> {
+
+                        // Asynchronously get item name for the tooltip
+                        getItemNameAsync(id, name ->
+                        {
                             label.setToolTipText(name);
                             label.repaint();
                         });
                     }
                 }
+
+                // Revalidate & repaint
                 rolledPanel.revalidate();
                 rolledPanel.repaint();
                 unlockedPanel.revalidate();

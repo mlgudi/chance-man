@@ -106,12 +106,21 @@ public class ChanceManPlugin extends Plugin
         {
             fileExecutor.shutdownNow();
         }
+        // Reset plugin state for a fresh initialization on restart.
+        itemsInitialized = false;
+        unlockedItemsManager = null;
+        rolledItemsManager = null;
+        rollAnimationManager = null;
+        chanceManPanel = null;
+        navButton = null;
+        fileExecutor = null;
+        allTradeableItems.clear();
     }
 
     /**
      * Refreshes the list of tradeable item IDs based on the current configuration.
      * Runs on the client thread. Iterates through item IDs 0–29999 and adds an item to allTradeableItems if:
-     * - The item is tradeable, is not coins (ID 995), and is not blocked by ItemsFilter.
+     * - The item is tradeable and is not blocked by ItemsFilter.
      * - If the "freeToPlay" option is enabled, members-only items are skipped.
      * If the chanceManPanel is initialized, the panel is updated to reflect the refreshed list.
      */
@@ -123,8 +132,7 @@ public class ChanceManPlugin extends Plugin
             for (int i = 0; i < 30000; i++)
             {
                 ItemComposition comp = itemManager.getItemComposition(i);
-                if (comp != null && comp.isTradeable() && i != 995 && i != 13190 && i != 13191
-                        && !ItemsFilter.isBlocked(comp.getName()))
+                if (comp != null && comp.isTradeable() && !isNotTracked(i) && !ItemsFilter.isBlocked(comp.getName()))
                 {
                     if (config.freeToPlay() && comp.isMembers())
                     {
@@ -269,7 +277,7 @@ public class ChanceManPlugin extends Plugin
                 itemId = mappedId;
             }
         }
-        if (!isTradeable(itemId) || isCoin(itemId) || isBond(itemId))
+        if (!isTradeable(itemId) || isNotTracked(itemId))
         {
             return;
         }
@@ -310,7 +318,7 @@ public class ChanceManPlugin extends Plugin
             for (net.runelite.api.Item item : event.getItemContainer().getItems())
             {
                 int itemId = item.getId();
-                if (!isTradeable(itemId) || isCoin(itemId) || isBond(itemId))
+                if (!isTradeable(itemId) || isNotTracked(itemId))
                 {
                     continue;
                 }
@@ -344,7 +352,7 @@ public class ChanceManPlugin extends Plugin
                         option.contains("take") || option.contains("pick-up") || option.contains("pickup")))
         {
             int groundItemId = event.getId() != -1 ? event.getId() : event.getMenuEntry().getItemId();
-            if (isTradeable(groundItemId) && !isCoin(groundItemId) && !isBond(groundItemId)
+            if (isTradeable(groundItemId) && !isNotTracked(groundItemId)
                     && unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(groundItemId))
             {
                 event.consume();
@@ -356,10 +364,9 @@ public class ChanceManPlugin extends Plugin
         {
             int itemId = event.getMenuEntry().getItemId();
             String itemName = getItemName(itemId).toLowerCase();
-            // Skip non-tradeable items, coins, coin pouches, and clue scrolls.
+            // Skip non-tradeable items
             if (!isTradeable(itemId)
-                    || isCoin(itemId)
-                    || isBond(itemId)
+                    || isNotTracked(itemId)
                     || itemName.contains("coin pouch")
                     || itemName.contains("clue scroll"))
             {
@@ -391,14 +398,11 @@ public class ChanceManPlugin extends Plugin
         return comp != null && comp.isTradeable();
     }
 
-    private boolean isCoin(int itemId)
+    private boolean isNotTracked(int itemId)
     {
-        return itemId == 995;
-    }
-
-    private boolean isBond(int itemId)
-    {
-        return itemId == 13191 || itemId == 13190;
+     return
+     itemId == 995 || itemId == 13191 || itemId == 13190 || //Coins and Bonds
+     itemId == 7588 || itemId == 1589 || itemId == 7590 || itemId == 7591; //Coffin from leo random
     }
 
     public String getItemName(int itemId)
