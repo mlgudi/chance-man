@@ -21,7 +21,7 @@ public class ItemsFilter {
         Set<String> blocked = new HashSet<>();
         blocked.add("armageddon teleport scroll");
         blocked.add("armageddon cape fabric");
-        blocked.add("armageddon teleport scroll");
+        blocked.add("armageddon weapon scroll");
         blocked.add("armageddon rug");
         blocked.add("blighted overload");
         blocked.add("blighted overload (1)");
