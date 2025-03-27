@@ -45,6 +45,11 @@ public class ChanceManPanel extends PluginPanel
     private final JLabel rolledCountLabel = new JLabel("Rolled: 0/0");
     private final JLabel unlockedCountLabel = new JLabel("Unlocked: 0/0");
 
+    // Filter buttons and active filter state
+    private JToggleButton filterUnlockedNotRolledButton;
+    private JToggleButton filterUnlockedAndRolledButton;
+    private String activeFilter = "NONE";
+
     /**
      * Constructs a ChanceManPanel.
      *
@@ -95,6 +100,9 @@ public class ChanceManPanel extends PluginPanel
         topPanel.setBackground(getBackground());
         topPanel.add(headerPanel);
         topPanel.add(searchBarPanel);
+
+        // Add filter panel below the search bar
+        topPanel.add(buildFilterPanel());
         add(topPanel, BorderLayout.NORTH);
 
         // Center: a panel with two columns side by side (rolled & unlocked)
@@ -189,7 +197,7 @@ public class ChanceManPanel extends PluginPanel
     }
 
     /**
-     * Builds the search bar panel
+     * Builds the search bar panel.
      */
     private JPanel buildSearchBar()
     {
@@ -233,6 +241,59 @@ public class ChanceManPanel extends PluginPanel
     }
 
     /**
+     * Builds the filter panel containing two toggle buttons with emoji.
+     */
+    private JPanel buildFilterPanel()
+    {
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        filterPanel.setBackground(getBackground());
+
+        // Create the toggle buttons
+        filterUnlockedNotRolledButton = new JToggleButton("🔓");
+        filterUnlockedAndRolledButton = new JToggleButton("🔀");
+
+        // Add tooltips to help users understand each filter
+        filterUnlockedNotRolledButton.setToolTipText("Show items that are unlocked but not rolled");
+        filterUnlockedAndRolledButton.setToolTipText("Show items that are both unlocked and rolled");
+
+        // Add action listeners to update activeFilter and refresh the panel
+        filterUnlockedNotRolledButton.addActionListener(e ->
+        {
+            if (filterUnlockedNotRolledButton.isSelected())
+            {
+                activeFilter = "UNLOCKED_NOT_ROLLED";
+                // Deselect the other button
+                filterUnlockedAndRolledButton.setSelected(false);
+            }
+            else
+            {
+                activeFilter = "NONE";
+            }
+            updatePanel();
+        });
+
+        filterUnlockedAndRolledButton.addActionListener(e ->
+        {
+            if (filterUnlockedAndRolledButton.isSelected())
+            {
+                activeFilter = "UNLOCKED_AND_ROLLED";
+                // Deselect the other button
+                filterUnlockedNotRolledButton.setSelected(false);
+            }
+            else
+            {
+                activeFilter = "NONE";
+            }
+            updatePanel();
+        });
+
+        filterPanel.add(filterUnlockedNotRolledButton);
+        filterPanel.add(filterUnlockedAndRolledButton);
+
+        return filterPanel;
+    }
+
+    /**
      * Triggers a manual roll animation when the Roll button is clicked.
      * If a roll is already in progress or if there are no locked items, it does nothing.
      *
@@ -271,7 +332,7 @@ public class ChanceManPanel extends PluginPanel
 
     /**
      * Updates the panel UI with the current rolled and unlocked items.
-     * Updates count panel with rolled/unlocked item amounts.
+     * Also updates count labels with rolled/unlocked item amounts.
      * This method fetches item definitions on the client thread to avoid thread errors,
      * then updates the UI on the Swing thread.
      */
@@ -307,7 +368,22 @@ public class ChanceManPanel extends PluginPanel
                 }
             }
 
-            // Count how many items total, rolled, and unlocked
+            // Apply filtering
+            if (activeFilter.equals("UNLOCKED_NOT_ROLLED"))
+            {
+                // In unlocked panel, show only items that are in unlocked but NOT in rolled.
+                filteredUnlocked.removeIf(id -> rolledItemsManager.getRolledItems().contains(id));
+                // Clear rolled panel for this filter.
+                filteredRolled.clear();
+            }
+            else if (activeFilter.equals("UNLOCKED_AND_ROLLED"))
+            {
+                // In both panels, show only items that are in both unlocked and rolled.
+                filteredUnlocked.removeIf(id -> !rolledItemsManager.getRolledItems().contains(id));
+                filteredRolled.removeIf(id -> !unlockedItemsManager.getUnlockedItems().contains(id));
+            }
+
+            // Count how many items total, rolled, and unlocked (global, not filtered)
             int totalTrackable = allTradeableItems.size();
             int rolledCount = rolledItemsManager.getRolledItems().size();
             int unlockedCount = unlockedItemsManager.getUnlockedItems().size();
@@ -329,7 +405,6 @@ public class ChanceManPanel extends PluginPanel
                         JLabel label = new JLabel(icon);
                         label.setToolTipText("Loading...");
                         rolledPanel.add(label);
-
                         // Asynchronously get item name for the tooltip
                         getItemNameAsync(id, name ->
                         {
@@ -349,7 +424,6 @@ public class ChanceManPanel extends PluginPanel
                         JLabel label = new JLabel(icon);
                         label.setToolTipText("Loading...");
                         unlockedPanel.add(label);
-
                         // Asynchronously get item name for the tooltip
                         getItemNameAsync(id, name ->
                         {
@@ -359,7 +433,7 @@ public class ChanceManPanel extends PluginPanel
                     }
                 }
 
-                // Revalidate & repaint
+                // Revalidate & repaint panels
                 rolledPanel.revalidate();
                 rolledPanel.repaint();
                 unlockedPanel.revalidate();
