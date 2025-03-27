@@ -19,12 +19,18 @@ public class ItemsFilter {
     static {
         // Initialize the blocked items set.
         Set<String> blocked = new HashSet<>();
+        blocked.add("armageddon teleport scroll");
+        blocked.add("armageddon cape fabric");
+        blocked.add("armageddon teleport scroll");
+        blocked.add("armageddon rug");
         blocked.add("blighted overload");
         blocked.add("blighted overload (1)");
         blocked.add("blighted overload (2)");
         blocked.add("blighted overload (3)");
         blocked.add("blighted overload (4)");
         blocked.add("chitin");
+        blocked.add("crystal ball (flatpack)");
+        blocked.add("cornflour");
         blocked.add("corrupted armadyl godsword");
         blocked.add("corrupted dark bow");
         blocked.add("corrupted dragon claws");
@@ -182,6 +188,7 @@ public class ItemsFilter {
         blocked.add("shattered relics mystic ornament kit (pack of 5)");
         blocked.add("shattered relics mystic ornament kit");
         blocked.add("shattered cannon ornament kit (pack of 4)");
+        blocked.add("shattered relic hunter (t1)");
         blocked.add("shattered relic hunter (t1) armour set");
         blocked.add("shattered relic hunter (t2)");
         blocked.add("shattered relic hunter (t2) armour set");
@@ -193,9 +200,9 @@ public class ItemsFilter {
         blocked.add("shattered hood (t1)");
         blocked.add("shattered hood (t2)");
         blocked.add("shattered hood (t3)");
-        blocked.add("shattered trouser (t1)");
-        blocked.add("shattered trouser (t2)");
-        blocked.add("shattered trouser (t3)");
+        blocked.add("shattered trousers (t1)");
+        blocked.add("shattered trousers (t2)");
+        blocked.add("shattered trousers (t3)");
         blocked.add("shattered boots (t1)");
         blocked.add("shattered boots (t2)");
         blocked.add("shattered boots (t3)");
