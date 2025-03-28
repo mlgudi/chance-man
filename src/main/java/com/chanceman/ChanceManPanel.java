@@ -83,6 +83,10 @@ public class ChanceManPanel extends PluginPanel
      */
     private void init()
     {
+        Font smallerFont = new Font("Arial", Font.BOLD, 11);
+        rolledCountLabel.setFont(smallerFont);
+        unlockedCountLabel.setFont(smallerFont);
+
         // Use BorderLayout so that header, search bar, and Roll button remain fixed.
         setLayout(new BorderLayout(0, 0));
         setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -106,7 +110,6 @@ public class ChanceManPanel extends PluginPanel
         add(topPanel, BorderLayout.NORTH);
 
         // Center: a panel with two columns side by side (rolled & unlocked)
-        // Each column is wrapped in its own JScrollPane so that only the column scrolls.
         JPanel columnsPanel = new JPanel(new GridLayout(1, 2, 10, 10));
         columnsPanel.setBackground(getBackground());
 
@@ -153,11 +156,21 @@ public class ChanceManPanel extends PluginPanel
         bottomPanel.setBackground(getBackground());
 
         // Row 1: Count labels
-        JPanel countersPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        JPanel countersPanel = new JPanel(new GridLayout(1, 2));
         countersPanel.setBackground(getBackground());
-        countersPanel.add(rolledCountLabel);
-        countersPanel.add(Box.createHorizontalStrut(15)); // optional spacing
-        countersPanel.add(unlockedCountLabel);
+
+        // Left cell for Rolled: X/Y
+        JPanel rolledLabelPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        rolledLabelPanel.setBackground(getBackground());
+        rolledLabelPanel.add(rolledCountLabel);
+
+        // Right cell for Unlocked: X/Y
+        JPanel unlockedLabelPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        unlockedLabelPanel.setBackground(getBackground());
+        unlockedLabelPanel.add(unlockedCountLabel);
+
+        countersPanel.add(rolledLabelPanel);
+        countersPanel.add(unlockedLabelPanel);
 
         // Row 2: Roll button
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER));
@@ -165,11 +178,9 @@ public class ChanceManPanel extends PluginPanel
         rollButton.addActionListener(this::performManualRoll);
         buttonPanel.add(rollButton);
 
-        // Add both rows to the bottom panel
         bottomPanel.add(countersPanel);
         bottomPanel.add(buttonPanel);
 
-        // Place the bottom panel at the SOUTH of the main layout
         add(bottomPanel, BorderLayout.SOUTH);
 
         // Populate the UI
@@ -371,31 +382,25 @@ public class ChanceManPanel extends PluginPanel
             // Apply filtering
             if (activeFilter.equals("UNLOCKED_NOT_ROLLED"))
             {
-                // In unlocked panel, show only items that are in unlocked but NOT in rolled.
                 filteredUnlocked.removeIf(id -> rolledItemsManager.getRolledItems().contains(id));
-                // Clear rolled panel for this filter.
                 filteredRolled.clear();
             }
             else if (activeFilter.equals("UNLOCKED_AND_ROLLED"))
             {
-                // In both panels, show only items that are in both unlocked and rolled.
                 filteredUnlocked.removeIf(id -> !rolledItemsManager.getRolledItems().contains(id));
                 filteredRolled.removeIf(id -> !unlockedItemsManager.getUnlockedItems().contains(id));
             }
 
-            // Count how many items total, rolled, and unlocked (global, not filtered)
             int totalTrackable = allTradeableItems.size();
             int rolledCount = rolledItemsManager.getRolledItems().size();
             int unlockedCount = unlockedItemsManager.getUnlockedItems().size();
 
-            // Update the UI on the Swing thread
             SwingUtilities.invokeLater(() ->
             {
                 // Update the labels: "Rolled X/Y" and "Unlocked X/Y"
                 rolledCountLabel.setText("Rolled: " + rolledCount + "/" + totalTrackable);
                 unlockedCountLabel.setText("Unlocked: " + unlockedCount + "/" + totalTrackable);
 
-                // Rebuild the rolled panel
                 rolledPanel.removeAll();
                 for (Integer id : filteredRolled)
                 {
@@ -414,7 +419,6 @@ public class ChanceManPanel extends PluginPanel
                     }
                 }
 
-                // Rebuild the unlocked panel
                 unlockedPanel.removeAll();
                 for (Integer id : filteredUnlocked)
                 {
@@ -432,7 +436,6 @@ public class ChanceManPanel extends PluginPanel
                         });
                     }
                 }
-
                 // Revalidate & repaint panels
                 rolledPanel.revalidate();
                 rolledPanel.repaint();
