@@ -37,6 +37,8 @@ public class ItemsFilter {
         blocked.add("corrupted twisted bow");
         blocked.add("corrupted voidwaker");
         blocked.add("corrupted volatile nightmare staff");
+        blocked.add("corrupted tumeken's shadow");
+        blocked.add("corrupted tumeken's shadow (uncharged)");
         blocked.add("morrigan's coif (deadman mode)");
         blocked.add("morrigan's javelin (deadman mode)");
         blocked.add("morrigan's leather body (deadman mode)");
