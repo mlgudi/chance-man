@@ -104,7 +104,7 @@ public class RollAnimationManager
         unlockedManager.unlockItem(finalRolledItem);
         // Using clientThread.invoke since the chat message queue is thread-safe
         clientThread.invoke(() -> {
-            String message = "Unlocked " + "<col=00ff00>" + plugin.getItemName(finalRolledItem) + "</col>"
+            String message = "Unlocked " + "<col=267567>" + plugin.getItemName(finalRolledItem) + "</col>"
                     + " by rolling " + "<col=ff0000>" + plugin.getItemName(queuedItemId) + "</col>";
 
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);

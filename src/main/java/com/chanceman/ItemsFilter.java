@@ -153,6 +153,9 @@ public class ItemsFilter {
         blocked.add("twisted coat (t1)");
         blocked.add("twisted coat (t2)");
         blocked.add("twisted coat (t3)");
+        blocked.add("twisted trousers (t1)");
+        blocked.add("twisted trousers (t2)");
+        blocked.add("twisted trousers (t3)");
         blocked.add("twisted relic hunter (t1) armour set");
         blocked.add("twisted relic hunter (t2)");
         blocked.add("twisted relic hunter (t2) armour set");
@@ -223,6 +226,15 @@ public class ItemsFilter {
         blocked.add("trailblazer reloaded headband (t1)");
         blocked.add("trailblazer reloaded headband (t2)");
         blocked.add("trailblazer reloaded headband (t3)");
+        blocked.add("trailblazer reloaded top (t1)");
+        blocked.add("trailblazer reloaded top (t2)");
+        blocked.add("trailblazer reloaded top (t3)");
+        blocked.add("trailblazer reloaded trousers (t1)");
+        blocked.add("trailblazer reloaded trousers (t2)");
+        blocked.add("trailblazer reloaded trousers (t3)");
+        blocked.add("trailblazer reloaded boots (t1)");
+        blocked.add("trailblazer reloaded boots (t2)");
+        blocked.add("trailblazer reloaded boots (t3)");
         blocked.add("raging echoes banner");
         blocked.add("raging echoes relic hunter (t1)");
         blocked.add("raging echoes relic hunter (t1) armour set");

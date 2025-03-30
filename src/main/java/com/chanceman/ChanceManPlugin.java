@@ -271,13 +271,17 @@ public class ChanceManPlugin extends Plugin
         int itemId = tileItem.getId();
         ItemComposition comp = itemManager.getItemComposition(itemId);
         String name = (comp != null && comp.getName() != null) ? comp.getName() : tileItem.toString();
-        if (name.toLowerCase().contains("ensouled")) {
+        if (name.toLowerCase().contains("ensouled"))
+        {
             int mappedId = ItemsFilter.getEnsouledHeadId(name);
-            if (mappedId != ItemsFilter.DEFAULT_ENSOULED_HEAD_ID) {
+            if (mappedId != ItemsFilter.DEFAULT_ENSOULED_HEAD_ID)
+            {
                 itemId = mappedId;
             }
         }
-        if (!isTradeable(itemId) || isNotTracked(itemId))
+        // Convert to canonical (unnoted) ID
+        int canonicalItemId = itemManager.canonicalize(itemId);
+        if (!isTradeable(canonicalItemId) || isNotTracked(canonicalItemId))
         {
             return;
         }
@@ -289,13 +293,13 @@ public class ChanceManPlugin extends Plugin
         {
             return;
         }
-        if (!rolledItemsManager.isRolled(itemId))
+        if (!rolledItemsManager.isRolled(canonicalItemId))
         {
             if (rollAnimationManager != null)
             {
-                rollAnimationManager.enqueueRoll(itemId);
+                rollAnimationManager.enqueueRoll(canonicalItemId);
             }
-            rolledItemsManager.markRolled(itemId);
+            rolledItemsManager.markRolled(canonicalItemId);
         }
     }
 
@@ -317,19 +321,20 @@ public class ChanceManPlugin extends Plugin
             Set<Integer> processed = new HashSet<>();
             for (net.runelite.api.Item item : event.getItemContainer().getItems())
             {
-                int itemId = item.getId();
-                if (!isTradeable(itemId) || isNotTracked(itemId))
+                int rawItemId = item.getId();
+                int canonicalId = itemManager.canonicalize(rawItemId);
+                if (!isTradeable(canonicalId) || isNotTracked(canonicalId))
                 {
                     continue;
                 }
-                if (!processed.contains(itemId) && !rolledItemsManager.isRolled(itemId))
+                if (!processed.contains(canonicalId) && !rolledItemsManager.isRolled(canonicalId))
                 {
                     if (rollAnimationManager != null)
                     {
-                        rollAnimationManager.enqueueRoll(itemId);
+                        rollAnimationManager.enqueueRoll(canonicalId);
                     }
-                    rolledItemsManager.markRolled(itemId);
-                    processed.add(itemId);
+                    rolledItemsManager.markRolled(canonicalId);
+                    processed.add(canonicalId);
                 }
             }
         }
@@ -351,9 +356,10 @@ public class ChanceManPlugin extends Plugin
                 (event.getMenuAction().toString().contains("GROUND_ITEM") ||
                         option.contains("take") || option.contains("pick-up") || option.contains("pickup")))
         {
-            int groundItemId = event.getId() != -1 ? event.getId() : event.getMenuEntry().getItemId();
-            if (isTradeable(groundItemId) && !isNotTracked(groundItemId)
-                    && unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(groundItemId))
+            int rawItemId = event.getId() != -1 ? event.getId() : event.getMenuEntry().getItemId();
+            int canonicalGroundId = itemManager.canonicalize(rawItemId);
+            if (isTradeable(canonicalGroundId) && !isNotTracked(canonicalGroundId)
+                    && unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(canonicalGroundId))
             {
                 event.consume();
                 return;
@@ -362,18 +368,19 @@ public class ChanceManPlugin extends Plugin
         // Handle inventory item actions.
         if (event.getMenuEntry().getItemId() != -1)
         {
-            int itemId = event.getMenuEntry().getItemId();
-            String itemName = getItemName(itemId).toLowerCase();
-            // Skip non-tradeable items
-            if (!isTradeable(itemId)
-                    || isNotTracked(itemId)
+            int rawItemId = event.getMenuEntry().getItemId();
+            int canonicalId = itemManager.canonicalize(rawItemId);
+            String itemName = getItemName(canonicalId).toLowerCase();
+            // Skip non-tradeable items and special cases
+            if (!isTradeable(canonicalId)
+                    || isNotTracked(canonicalId)
                     || itemName.contains("coin pouch")
                     || itemName.contains("clue scroll"))
             {
                 return;
             }
             // For locked inventory items, allow only "examine" and "drop" actions.
-            if (unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(itemId))
+            if (unlockedItemsManager != null && !unlockedItemsManager.isUnlocked(canonicalId))
             {
                 if (!option.equals("examine") && !option.equals("drop"))
                 {
