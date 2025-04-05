@@ -164,7 +164,7 @@ public class ChanceManPlugin extends Plugin
         if (client.getLocalPlayer() != null && !itemsInitialized)
         {
             String playerName = client.getLocalPlayer().getName();
-            spellHelper = new ChanceManSpellHelper();
+            spellHelper = new ChanceManSpellHelper(gson);
             unlockedItemsManager = new UnlockedItemsManager(playerName, gson, fileExecutor);
             unlockedItemsManager.loadUnlockedItems();
             rolledItemsManager = new RolledItemsManager(playerName, gson, fileExecutor);
