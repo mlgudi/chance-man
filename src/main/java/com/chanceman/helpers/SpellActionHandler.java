@@ -16,16 +16,25 @@ public class SpellActionHandler {
     // Mapping from required rune to a list of staff names that provide unlimited runes.
     private static final Map<String, List<String>> STAFF_MAPPING = Map.ofEntries(
             Map.entry("air rune", List.of("Staff of air", "Air battlestaff", "Mystic air staff", "Dust battlestaff",
-                    "Mystic dust staff", "Mist battlestaff", "Mystic mist staff", "Smoke battlestaff", "Mystic smoke staff")),
+                    "Mystic dust staff", "Mist battlestaff", "Mystic mist staff", "Smoke battlestaff",
+                    "Mystic smoke staff", "Blighted Wave Sack", "Blighted Surge Sack", "Blighted ancient ice sack",
+                    "Blighted entangle sack", "Blighted teleport spell sack", "Blighted vengeance sack")),
             Map.entry("water rune", List.of("Staff of water", "Water battlestaff", "Mystic water staff",
                     "Mist battlestaff", "Mystic mist staff", "Mud battlestaff", "Mystic mud staff", "Steam battlestaff",
-                    "Mystic steam staff", "Twinflame staff", "Kodai Wand")),
+                    "Mystic steam staff", "Twinflame staff", "Kodai Wand", "Tome of Water", "Blighted Wave Sack",
+                    "Blighted Surge Sack", "Blighted ancient ice sack", "Blighted entangle sack",
+                    "Blighted teleport spell sack", "Blighted vengeance sack", "Trident of the Seas",
+                    "Trident of the Swamp")),
             Map.entry("earth rune", List.of("Staff of earth", "Earth battlestaff", "Mystic earth staff",
                     "Dust battlestaff", "Mystic dust staff", "Mud battlestaff", "Mystic mud staff", "Lava battlestaff",
-                    "Mystic lava staff")),
+                    "Mystic lava staff", "Blighted Wave Sack", "Blighted Surge Sack", "Blighted ancient ice sack",
+                    "Blighted entangle sack", "Blighted teleport spell sack", "Blighted vengeance sack",
+                    "Tome of Earth")),
             Map.entry("fire rune", List.of("Staff of fire", "Fire battlestaff", "Mystic fire staff",
                     "Lava battlestaff", "Mystic lava staff", "Smoke battlestaff", "Mystic smoke staff",
-                    "Steam battlestaff", "Mystic steam staff", "Twinflame staff"))
+                    "Steam battlestaff", "Mystic steam staff", "Twinflame staff", "Blighted Wave Sack",
+                    "Blighted Surge Sack", "Blighted ancient ice sack", "Blighted entangle sack",
+                    "Blighted teleport spell sack", "Blighted vengeance sack", "Tome of Fire"))
     );
 
     /**
