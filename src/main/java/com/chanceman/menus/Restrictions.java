@@ -4,7 +4,6 @@ import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
 import net.runelite.api.Client;
 import net.runelite.api.InventoryID;
-import net.runelite.api.ItemComposition;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.Widget;
@@ -34,35 +33,37 @@ public class Restrictions
 	@Inject private Client client;
 	@Inject private UnlockedItemsManager unlockedItemsManager;
 	private final HashSet<SkillOp> enabledSkillOps = new HashSet<>();
+	private final HashSet<Integer> availableRunes = new HashSet<>();
 
 	@Subscribe
 	public void onGameTick(GameTick event)
 	{
 		if (!unlockedItemsManager.ready()) return;
 		enabledSkillOps.clear();
-		HashSet<Integer> playerItems = getPlayerItems();
-		for (int id : playerItems)
-		{
-			if (!plugin.isInPlay(id) || !unlockedItemsManager.isUnlocked(id)) continue;
-			if (!SkillItem.isSkillItem(id)) continue;
-			enabledSkillOps.add(ITEM_TO_OP.get(id));
-		}
-	}
+		availableRunes.clear();
 
-	private HashSet<Integer> getPlayerItems() {
 		ItemContainer equippedItems = client.getItemContainer(InventoryID.EQUIPMENT);
 		ItemContainer inventoryItems = client.getItemContainer(InventoryID.INVENTORY);
 
-		HashSet<Integer> ids = new HashSet<>();
 		if (equippedItems != null)
 		{
-			Arrays.stream(equippedItems.getItems()).forEach(item -> ids.add(item.getId()));
+			Arrays.stream(equippedItems.getItems()).forEach(item -> {
+				int id = item.getId();
+				if (!plugin.isInPlay(id) || !unlockedItemsManager.isUnlocked(id)) return;
+				if (RuneProvider.isEquppedProvider(id)) availableRunes.addAll(RuneProvider.getProvidedRunes(id));
+				if (SkillItem.isSkillItem(id)) enabledSkillOps.add(ITEM_TO_OP.get(id));
+			});
 		}
+
 		if (inventoryItems != null)
 		{
-			Arrays.stream(inventoryItems.getItems()).forEach(item -> ids.add(item.getId()));
+			Arrays.stream(inventoryItems.getItems()).forEach(item -> {
+				int id = item.getId();
+				if (!plugin.isInPlay(id) || !unlockedItemsManager.isUnlocked(id)) return;
+				if (RuneProvider.isInvProvider(id)) availableRunes.addAll(RuneProvider.getProvidedRunes(id));
+				if (SkillItem.isSkillItem(id)) enabledSkillOps.add(ITEM_TO_OP.get(id));
+			});
 		}
-		return ids;
 	}
 
 	public boolean isSkillOpEnabled(String option)
@@ -74,8 +75,9 @@ public class Restrictions
 	public boolean isSpellOpEnabled()
 	{
 		Widget spellOverlay = client.getWidget(SPELL_REQUIREMENT_OVERLAY_NORMAL);
-		Widget autocastOverlay = client.getWidget(AUTOCAST_REQUIREMENT_OVERLAY_NORMAL);
 		if (spellOverlay != null) return processChildren(spellOverlay);
+
+		Widget autocastOverlay = client.getWidget(AUTOCAST_REQUIREMENT_OVERLAY_NORMAL);
 		if (autocastOverlay != null) return processChildren(autocastOverlay);
 		return false;
 	}
@@ -90,10 +92,7 @@ public class Restrictions
 			int id = child.getItemId();
 			if (id == -1) continue;
 
-			ItemComposition comp = client.getItemDefinition(id);
-			if (!comp.isTradeable()) continue;
-
-			if (plugin.isInPlay(id) && !unlockedItemsManager.isUnlocked(id))
+			if (plugin.isInPlay(id) && !availableRunes.contains(id))
 				return false;
 		}
 		return true;
