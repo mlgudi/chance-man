@@ -108,6 +108,8 @@ public class ChanceManPlugin extends Plugin
                                     .build();
         clientToolbar.addNavigation(navButton);
         overlayManager.add(chanceManOverlay);
+
+        accountManager.init();
     }
 
     @Override

@@ -41,6 +41,15 @@ public class AccountManager
 
 	public boolean ready() { return hash != -1 && nameSet; }
 
+	public void init()
+	{
+		if (client.getGameState() == GameState.LOGGED_IN && client.getAccountHash() != -1)
+		{
+			hash = client.getAccountHash();
+			nameSet = false;
+		}
+	}
+
 	@Subscribe
 	private void onAccountHashChanged(AccountHashChanged event)
 	{
