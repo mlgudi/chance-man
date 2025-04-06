@@ -28,7 +28,7 @@ public class ChanceManPanel extends PluginPanel
     private final UnlockedItemsManager unlockedItemsManager;
     private final RolledItemsManager rolledItemsManager;
     private final ItemManager itemManager;
-    private final List<Integer> allTradeableItems;
+    private final HashSet<Integer> allTradeableItems;
     private final ClientThread clientThread;
     private final RollAnimationManager rollAnimationManager;
 
@@ -84,7 +84,7 @@ public class ChanceManPanel extends PluginPanel
             UnlockedItemsManager unlockedItemsManager,
             RolledItemsManager rolledItemsManager,
             ItemManager itemManager,
-            List<Integer> allTradeableItems,
+            HashSet<Integer> allTradeableItems,
             ClientThread clientThread,
             RollAnimationManager rollAnimationManager
     )

@@ -7,6 +7,7 @@ import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
@@ -19,6 +20,7 @@ import java.util.function.Supplier;
  * Overlay for displaying the roll animation.
  * It renders a scrolling set of item icons and highlights the final item.
  */
+@Singleton
 public class ChanceManOverlay extends Overlay
 {
     private final Client client;

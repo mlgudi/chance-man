@@ -1,12 +1,10 @@
 package com.chanceman;
 
-import com.chanceman.helpers.ChanceManSpellHelper;
-import com.chanceman.helpers.ToolActionHandler;
-import com.chanceman.helpers.SpellActionHandler;
-import com.chanceman.helpers.InventoryActionHandler;
-import com.chanceman.helpers.ToolActionMapping;
+
+import com.chanceman.menus.ActionHandler;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
+import lombok.Getter;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
 import net.runelite.api.WorldType;
@@ -28,7 +26,6 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.config.ConfigManager;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import javax.swing.*;
 import java.awt.image.BufferedImage;
 import java.util.*;
@@ -40,7 +37,6 @@ import java.util.concurrent.Executors;
         description = "Locks tradeable items until unlocked via a random roll.",
         tags = {"osrs", "chance", "roll", "lock", "unlock"}
 )
-@Singleton
 public class ChanceManPlugin extends Plugin
 {
     @Inject
@@ -63,15 +59,17 @@ public class ChanceManPlugin extends Plugin
     private ChanceManConfig config;
     @Inject
     private ConfigManager configManager;
-
+    @Inject
     private UnlockedItemsManager unlockedItemsManager;
+    @Inject
     private RolledItemsManager rolledItemsManager;
+    @Inject
     private RollAnimationManager rollAnimationManager;
+
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
     private ExecutorService fileExecutor;
-    private ChanceManSpellHelper spellHelper;
-    private final List<Integer> allTradeableItems = new ArrayList<>();
+    @Getter private final HashSet<Integer> allTradeableItems = new LinkedHashSet<>();
     private static final int GE_SEARCH_BUILD_SCRIPT = 751;
     private boolean itemsInitialized = false;
 
@@ -84,11 +82,15 @@ public class ChanceManPlugin extends Plugin
     @Override
     protected void startUp() throws Exception
     {
+        overlayManager.add(chanceManOverlay);
+        getInjector().getInstance(ActionHandler.class).startUp();
+        fileExecutor = Executors.newSingleThreadExecutor();
+        unlockedItemsManager.setExecutor(fileExecutor);
+        rolledItemsManager.setExecutor(fileExecutor);
         if (!isNormalWorld())
         {
             return;
         }
-        fileExecutor = Executors.newSingleThreadExecutor();
         refreshTradeableItems();
         // Managers and UI are initialized on the first game tick.
     }
@@ -112,11 +114,9 @@ public class ChanceManPlugin extends Plugin
         {
             fileExecutor.shutdownNow();
         }
+        getInjector().getInstance(ActionHandler.class).shutDown();
         // Reset plugin state for a fresh initialization on restart.
         itemsInitialized = false;
-        unlockedItemsManager = null;
-        rolledItemsManager = null;
-        rollAnimationManager = null;
         chanceManPanel = null;
         navButton = null;
         fileExecutor = null;
@@ -142,6 +142,7 @@ public class ChanceManPlugin extends Plugin
                     allTradeableItems.add(i);
                 }
             }
+            rollAnimationManager.setAllTradeableItems(allTradeableItems);
             if (chanceManPanel != null) {
                 SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
             }
@@ -164,21 +165,10 @@ public class ChanceManPlugin extends Plugin
         if (client.getLocalPlayer() != null && !itemsInitialized)
         {
             String playerName = client.getLocalPlayer().getName();
-            spellHelper = new ChanceManSpellHelper(gson);
-            unlockedItemsManager = new UnlockedItemsManager(playerName, gson, fileExecutor);
+            unlockedItemsManager.setPlayerName(playerName);
+            rolledItemsManager.setPlayerName(playerName);
             unlockedItemsManager.loadUnlockedItems();
-            rolledItemsManager = new RolledItemsManager(playerName, gson, fileExecutor);
             rolledItemsManager.loadRolledItems();
-            rollAnimationManager = new RollAnimationManager(
-                    unlockedItemsManager,
-                    chanceManOverlay,
-                    allTradeableItems,
-                    itemManager,
-                    client,
-                    chatMessageManager,
-                    this,
-                    clientThread
-            );
             chanceManPanel = new ChanceManPanel(
                     unlockedItemsManager,
                     rolledItemsManager,
@@ -199,10 +189,7 @@ public class ChanceManPlugin extends Plugin
             refreshTradeableItems();
             itemsInitialized = true;
         }
-        if (rollAnimationManager != null)
-        {
-            rollAnimationManager.process();
-        }
+        rollAnimationManager.process();
         if (chanceManPanel != null)
         {
             SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
@@ -270,10 +257,7 @@ public class ChanceManPlugin extends Plugin
         }
         if (!rolledItemsManager.isRolled(canonicalItemId))
         {
-            if (rollAnimationManager != null)
-            {
-                rollAnimationManager.enqueueRoll(canonicalItemId);
-            }
+            rollAnimationManager.enqueueRoll(canonicalItemId);
             rolledItemsManager.markRolled(canonicalItemId);
         }
     }
@@ -298,36 +282,12 @@ public class ChanceManPlugin extends Plugin
                 }
                 if (!processed.contains(canonicalId) && !rolledItemsManager.isRolled(canonicalId))
                 {
-                    if (rollAnimationManager != null)
-                    {
-                        rollAnimationManager.enqueueRoll(canonicalId);
-                    }
+                    rollAnimationManager.enqueueRoll(canonicalId);
                     rolledItemsManager.markRolled(canonicalId);
                     processed.add(canonicalId);
                 }
             }
         }
-    }
-
-    @Subscribe
-    public void onMenuOptionClicked(net.runelite.api.events.MenuOptionClicked event)
-    {
-        String option = event.getMenuEntry().getOption().toLowerCase();
-
-        // 1. Handle tool/skilling actions.
-        if (!ToolActionHandler.handleToolAction(client, itemManager, unlockedItemsManager, ToolActionMapping.getToolActionMap(), event))
-        {
-            return;
-        }
-
-        // 2. Handle spell casting actions.
-        if (!SpellActionHandler.handleSpellAction(client, itemManager, unlockedItemsManager, spellHelper, event))
-        {
-            return;
-        }
-
-        // 3. Handle direct inventory actions (including ground items).
-        InventoryActionHandler.handleInventoryAction(itemManager, unlockedItemsManager, event, this);
     }
 
     public boolean isNormalWorld()
@@ -351,9 +311,8 @@ public class ChanceManPlugin extends Plugin
                 itemId == 7588 || itemId == 1589 || itemId == 7590 || itemId == 7591;
     }
 
-    public String getItemName(int itemId)
+    public boolean isInPlay(int itemId)
     {
-        ItemComposition comp = itemManager.getItemComposition(itemId);
-        return comp != null ? comp.getName() : "Unknown";
+        return allTradeableItems.contains(itemId);
     }
 }
