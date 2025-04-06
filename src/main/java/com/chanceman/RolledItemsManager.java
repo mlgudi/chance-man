@@ -1,19 +1,24 @@
 package com.chanceman;
 
+import com.chanceman.account.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.client.RuneLite;
 
+import javax.inject.Inject;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
+
+import static net.runelite.client.RuneLite.RUNELITE_DIR;
 
 /**
  * Manages the set of rolled items.
@@ -23,27 +28,16 @@ import java.util.concurrent.ExecutorService;
 public class RolledItemsManager
 {
     private final Set<Integer> rolledItems = Collections.synchronizedSet(new HashSet<>());
-    private final String filePath;
-    private final Gson gson;
-    private final ExecutorService executor;
+    @Inject private AccountManager accountManager;
+    @Inject private Gson gson;
+    @Setter private ExecutorService executor;
 
-    /**
-     * Constructs a RolledItemsManager for a given player.
-     *
-     * @param playerName The player's name.
-     */
-    public RolledItemsManager(String playerName, Gson gson, ExecutorService executor)
+    private File getFile()
     {
-        this.gson = gson;
-        this.executor = executor;
-        filePath = RuneLite.RUNELITE_DIR + File.separator +
-                "chanceman" + File.separator +
-                playerName + File.separator +
-                "chanceman_rolled.json";
+        return Path.of(RUNELITE_DIR.getPath(), "chanceman", accountManager.getPlayerName(), "chanceman_rolled.json").toFile();
     }
 
-
-    /**
+	/**
      * Checks if an item has been rolled.
      *
      * @param itemId The item ID.
@@ -70,8 +64,9 @@ public class RolledItemsManager
      */
     public void loadRolledItems()
     {
+        rolledItems.clear();
         executor.submit(() -> {
-            File file = new File(filePath);
+            File file = getFile();
             if (!file.exists())
             {
                 file.getParentFile().mkdirs();
@@ -99,7 +94,7 @@ public class RolledItemsManager
     public synchronized void saveRolledItems()
     {
         executor.submit(() -> {
-            File file = new File(filePath);
+            File file = getFile();
             file.getParentFile().mkdirs();
             try (FileWriter writer = new FileWriter(file))
             {
