@@ -88,6 +88,7 @@ public class ChanceManPlugin extends Plugin
         fileExecutor = Executors.newSingleThreadExecutor();
         unlockedItemsManager.setExecutor(fileExecutor);
         rolledItemsManager.setExecutor(fileExecutor);
+        rollAnimationManager.startUp();
         if (!isNormalWorld())
         {
             return;
@@ -316,4 +317,7 @@ public class ChanceManPlugin extends Plugin
     {
         return allTradeableItems.contains(itemId);
     }
+
+    public ItemManager getItemManager() { return itemManager; }
+
 }

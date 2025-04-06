@@ -31,7 +31,7 @@ public class RollAnimationManager
 
     @Setter private HashSet<Integer> allTradeableItems;
     private final Queue<Integer> rollQueue = new ConcurrentLinkedQueue<>();
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isRolling = false;
     private final int rollDuration = 4000; // Continuous phase duration (ms)
     private final int highlightDuration = 1500; // Highlight phase (ms)
@@ -120,6 +120,12 @@ public class RollAnimationManager
     {
         ItemComposition comp = itemManager.getItemComposition(itemId);
         return comp != null ? comp.getName() : "Unknown";
+    }
+
+    public void startUp() {
+        if (executor == null || executor.isShutdown() || executor.isTerminated()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
     }
 
     /**
