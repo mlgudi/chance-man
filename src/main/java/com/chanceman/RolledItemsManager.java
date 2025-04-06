@@ -1,5 +1,6 @@
 package com.chanceman;
 
+import com.chanceman.account.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.Setter;
@@ -27,23 +28,16 @@ import static net.runelite.client.RuneLite.RUNELITE_DIR;
 public class RolledItemsManager
 {
     private final Set<Integer> rolledItems = Collections.synchronizedSet(new HashSet<>());
+    @Inject private AccountManager accountManager;
     @Inject private Gson gson;
     @Setter private ExecutorService executor;
-    private String playerName;
-    private File file;
 
     private File getFile()
     {
-        return Path.of(RUNELITE_DIR.getPath(), "chanceman", playerName, "chanceman_rolled.json").toFile();
+        return Path.of(RUNELITE_DIR.getPath(), "chanceman", accountManager.getPlayerName(), "chanceman_rolled.json").toFile();
     }
 
-    public void setPlayerName(String playerName)
-    {
-        this.playerName = playerName;
-        this.file = getFile();
-    }
-
-    /**
+	/**
      * Checks if an item has been rolled.
      *
      * @param itemId The item ID.
@@ -70,7 +64,9 @@ public class RolledItemsManager
      */
     public void loadRolledItems()
     {
+        rolledItems.clear();
         executor.submit(() -> {
+            File file = getFile();
             if (!file.exists())
             {
                 file.getParentFile().mkdirs();
@@ -98,6 +94,7 @@ public class RolledItemsManager
     public synchronized void saveRolledItems()
     {
         executor.submit(() -> {
+            File file = getFile();
             file.getParentFile().mkdirs();
             try (FileWriter writer = new FileWriter(file))
             {

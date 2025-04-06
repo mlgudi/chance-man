@@ -1,5 +1,6 @@
 package com.chanceman;
 
+import com.chanceman.account.AccountManager;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.Setter;
@@ -30,25 +31,18 @@ import static net.runelite.client.RuneLite.RUNELITE_DIR;
 public class UnlockedItemsManager
 {
     private final Set<Integer> unlockedItems = Collections.synchronizedSet(new HashSet<>());
+    @Inject private AccountManager accountManager;
     @Inject private Gson gson;
     @Setter private ExecutorService executor;
-    private String playerName;
-    private File file;
 
-    public boolean ready() { return playerName != null; }
+    public boolean ready() { return accountManager.getPlayerName() != null; }
 
     private File getFile()
     {
-        return Path.of(RUNELITE_DIR.getPath(), "chanceman", playerName, "chanceman_unlocked.json").toFile();
+        return Path.of(RUNELITE_DIR.getPath(), "chanceman", accountManager.getPlayerName(), "chanceman_unlocked.json").toFile();
     }
 
-    public void setPlayerName(String playerName)
-    {
-        this.playerName = playerName;
-        this.file = getFile();
-    }
-
-    /**
+	/**
      * Checks if an item is unlocked.
      *
      * @param itemId The item ID.
@@ -75,7 +69,9 @@ public class UnlockedItemsManager
      */
     public void loadUnlockedItems()
     {
+        unlockedItems.clear();
         executor.submit(() -> {
+            File file = getFile();
             if (!file.exists())
             {
                 file.getParentFile().mkdirs();
@@ -103,6 +99,7 @@ public class UnlockedItemsManager
     public synchronized void saveUnlockedItems()
     {
         executor.submit(() -> {
+            File file = getFile();
             file.getParentFile().mkdirs();
             try (FileWriter writer = new FileWriter(file))
             {
