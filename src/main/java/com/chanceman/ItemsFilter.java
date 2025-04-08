@@ -171,6 +171,14 @@ public class ItemsFilter {
         blocked.add("oak telescope");
         blocked.add("teak telescope");
         blocked.add("mahogany telescope");
+        blocked.add("bounty supply crate");
+        blocked.add("bounty supply crate (manta ray)");
+        blocked.add("bounty supply crate (anglerfish)");
+        blocked.add("nimbleness charm");
+        blocked.add("stockpiling charm");
+        blocked.add("accumulation charm");
+        blocked.add("vulnerability charm");
+
 
         // Additional blocked items (twisted, trailblazer, shattered, etc.)
         blocked.add("twisted banner");
@@ -290,9 +298,32 @@ public class ItemsFilter {
         blocked.add("raging echoes home teleport");
         blocked.add("raging echoes death");
         blocked.add("raging echoes npc contact");
+        blocked.add("raging echoes death scroll");
+        blocked.add("raging echoes npc contact scroll");
+        blocked.add("raging echoes nexus scroll");
+        blocked.add("raging echoes portal scroll");
+        blocked.add("raging echoes scrying pool scroll");
+        blocked.add("raging echoes spirit tree scroll");
+        blocked.add("raging echoes hat (t1)");
+        blocked.add("raging echoes top (t1)");
+        blocked.add("raging echoes robeskirt (t1)");
+        blocked.add("raging echoes boots (t1)");
+        blocked.add("raging echoes hat (t2)");
+        blocked.add("raging echoes top (t2)");
+        blocked.add("raging echoes robeskirt (t2)");
+        blocked.add("raging echoes boots (t2)");
+        blocked.add("raging echoes hat (t3)");
+        blocked.add("raging echoes top (t3)");
+        blocked.add("raging echoes robeskirt (t3)");
+        blocked.add("raging echoes boots (t3)");
+        blocked.add("raging echoes cane");
         blocked.add("echo ahrim's robes orn kit (pack of 4)");
         blocked.add("echo virtus robes orn kit (pack of 3)");
         blocked.add("echo venator bow orn kit");
+        blocked.add("echo venator bow ornament kit");
+        blocked.add("echo virtus ornament kit");
+        blocked.add("echo ahrim's ornament kit");
+        blocked.add("echo home teleport scroll");
         BLOCKED_ITEMS = Collections.unmodifiableSet(blocked);
 
         // Initialize the ensouled head mapping.
