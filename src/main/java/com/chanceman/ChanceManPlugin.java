@@ -150,7 +150,7 @@ public class ChanceManPlugin extends Plugin
     {
         clientThread.invokeLater(() -> {
             allTradeableItems.clear();
-            for (int i = 0; i < 30000; i++)
+            for (int i = 0; i < 35000; i++)
             {
                 ItemComposition comp = itemManager.getItemComposition(i);
                 if (comp != null && comp.isTradeable() && !isNotTracked(i) && !ItemsFilter.isBlocked(comp.getName()))

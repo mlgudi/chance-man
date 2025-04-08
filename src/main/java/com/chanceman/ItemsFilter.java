@@ -31,6 +31,7 @@ public class ItemsFilter {
         blocked.add("chitin");
         blocked.add("crystal ball (flatpack)");
         blocked.add("cornflour");
+        blocked.add("cooked chompy");
         blocked.add("corrupted armadyl godsword");
         blocked.add("corrupted dark bow");
         blocked.add("corrupted dragon claws");
@@ -45,6 +46,7 @@ public class ItemsFilter {
         blocked.add("morrigan's leather body (deadman mode)");
         blocked.add("morrigan's leather chaps (deadman mode)");
         blocked.add("morrigan's throwing axe (deadman mode)");
+        blocked.add("rock-climbing boots");
         blocked.add("sigil of adroit");
         blocked.add("sigil of aggression");
         blocked.add("sigil of agile fortune");
@@ -147,6 +149,28 @@ public class ItemsFilter {
         blocked.add("zuriel's robe top (deadman mode)");
         blocked.add("zuriel's staff (deadman mode)");
         blocked.add("osman's report");
+        blocked.add("karidian disguise");
+        blocked.add("oak lectern");
+        blocked.add("eagle lectern");
+        blocked.add("teak eagle lectern");
+        blocked.add("demon lectern");
+        blocked.add("teak demon lectern");
+        blocked.add("mahogany eagle");
+        blocked.add("mahogany demon");
+        blocked.add("demon eagle");
+        blocked.add("crystal ball");
+        blocked.add("crystal of power");
+        blocked.add("elemental sphere");
+        blocked.add("globe");
+        blocked.add("Ornamental globe");
+        blocked.add("lunar globe");
+        blocked.add("celestial globe");
+        blocked.add("armillary sphere");
+        blocked.add("small orrery");
+        blocked.add("large orrery");
+        blocked.add("oak telescope");
+        blocked.add("teak telescope");
+        blocked.add("mahogany telescope");
 
         // Additional blocked items (twisted, trailblazer, shattered, etc.)
         blocked.add("twisted banner");
@@ -203,6 +227,7 @@ public class ItemsFilter {
         blocked.add("shattered relics mystic ornament kit (pack of 5)");
         blocked.add("shattered relics mystic ornament kit");
         blocked.add("shattered cannon ornament kit (pack of 4)");
+        blocked.add("shattered cannon ornament kit");
         blocked.add("shattered relic hunter (t1)");
         blocked.add("shattered relic hunter (t1) armour set");
         blocked.add("shattered relic hunter (t2)");
