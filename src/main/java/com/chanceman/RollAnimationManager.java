@@ -1,5 +1,6 @@
 package com.chanceman;
 
+import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
@@ -37,6 +38,10 @@ public class RollAnimationManager
     private final int highlightDuration = 1500; // Highlight phase (ms)
     private final Random random = new Random();
 
+    @Getter
+    @Setter
+    private volatile boolean manualRoll = false;
+
     /**
      * Enqueues an item ID for the roll animation.
      *
@@ -73,13 +78,22 @@ public class RollAnimationManager
         }
         int finalRolledItem = overlay.getFinalItem();
         unlockedManager.unlockItem(finalRolledItem);
-        // Using clientThread.invoke since the chat message queue is thread-safe
+        final boolean wasManualRoll = isManualRoll();
         clientThread.invoke(() -> {
-            String message = "Unlocked " + "<col=267567>" + getItemName(finalRolledItem) + "</col>"
-                    + " by rolling " + "<col=ff0000>" + getItemName(queuedItemId) + "</col>";
-
+            String message;
+            if (wasManualRoll)
+            {
+                message = "Unlocked " + "<col=267567>" + getItemName(finalRolledItem) + "</col>" +
+                      " by" + "<col=ff0000> pressing a button</col>";
+            }
+            else
+            {
+                message = "Unlocked " + "<col=267567>" + getItemName(finalRolledItem) + "</col>"
+                        + " by rolling " + "<col=ff0000>" + getItemName(queuedItemId) + "</col>";
+            }
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
         });
+        setManualRoll(false);
         isRolling = false;
     }
 

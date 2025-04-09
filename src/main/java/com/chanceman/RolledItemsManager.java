@@ -15,6 +15,7 @@ import java.lang.reflect.Type;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
@@ -27,7 +28,7 @@ import static net.runelite.client.RuneLite.RUNELITE_DIR;
 @Slf4j
 public class RolledItemsManager
 {
-    private final Set<Integer> rolledItems = Collections.synchronizedSet(new HashSet<>());
+    private final Set<Integer> rolledItems = Collections.synchronizedSet(new LinkedHashSet<>());
     @Inject private AccountManager accountManager;
     @Inject private Gson gson;
     @Setter private ExecutorService executor;

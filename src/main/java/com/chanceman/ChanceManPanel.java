@@ -437,6 +437,7 @@ public class ChanceManPanel extends PluginPanel
             return;
         }
         int randomItemId = locked.get(new Random().nextInt(locked.size()));
+        rollAnimationManager.setManualRoll(true);
         rollAnimationManager.enqueueRoll(randomItemId);
     }
 
@@ -463,6 +464,8 @@ public class ChanceManPanel extends PluginPanel
                 }
             }
 
+            Collections.reverse(filteredRolled);
+
             List<Integer> filteredUnlocked = new ArrayList<>();
             for (Integer id : unlockedItemsManager.getUnlockedItems())
             {
@@ -476,6 +479,8 @@ public class ChanceManPanel extends PluginPanel
                     }
                 }
             }
+
+            Collections.reverse(filteredUnlocked);
 
             // Apply active filter toggles
             if (activeFilter.equals("UNLOCKED_NOT_ROLLED"))
