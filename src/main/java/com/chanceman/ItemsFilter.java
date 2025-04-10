@@ -46,6 +46,11 @@ public class ItemsFilter {
         blocked.add("morrigan's leather body (deadman mode)");
         blocked.add("morrigan's leather chaps (deadman mode)");
         blocked.add("morrigan's throwing axe (deadman mode)");
+        blocked.add("morrigan's coif");
+        blocked.add("morrigan's javelin");
+        blocked.add("morrigan's leather body");
+        blocked.add("morrigan's leather chaps");
+        blocked.add("morrigan's throwing axe");
         blocked.add("rock-climbing boots");
         blocked.add("sigil of adroit");
         blocked.add("sigil of aggression");
@@ -136,6 +141,10 @@ public class ItemsFilter {
         blocked.add("statius's platebody (deadman mode)");
         blocked.add("statius's platelegs (deadman mode)");
         blocked.add("statius's warhammer (deadman mode)");
+        blocked.add("statius's full helm");
+        blocked.add("statius's platebody");
+        blocked.add("statius's platelegs");
+        blocked.add("statius's warhammer");
         blocked.add("trinket of advanced weaponry");
         blocked.add("trinket of fairies");
         blocked.add("trinket of undead");
@@ -144,10 +153,18 @@ public class ItemsFilter {
         blocked.add("vesta's longsword (deadman mode)");
         blocked.add("vesta's plateskirt (deadman mode)");
         blocked.add("vesta's spear (deadman mode)");
+        blocked.add("vesta's longsword");
+        blocked.add("vesta's spear");
+        blocked.add("vesta's chainbody");
+        blocked.add("vesta's plateskirt");
         blocked.add("zuriel's hood (deadman mode)");
         blocked.add("zuriel's robe bottom (deadman mode)");
         blocked.add("zuriel's robe top (deadman mode)");
         blocked.add("zuriel's staff (deadman mode)");
+        blocked.add("zuriel's staff");
+        blocked.add("zuriel's hood");
+        blocked.add("zuriel's robe bottom");
+        blocked.add("zuriel's robe top");
         blocked.add("osman's report");
         blocked.add("karidian disguise");
         blocked.add("oak lectern");
@@ -172,8 +189,6 @@ public class ItemsFilter {
         blocked.add("teak telescope");
         blocked.add("mahogany telescope");
         blocked.add("bounty supply crate");
-        blocked.add("bounty supply crate (manta ray)");
-        blocked.add("bounty supply crate (anglerfish)");
         blocked.add("nimbleness charm");
         blocked.add("stockpiling charm");
         blocked.add("accumulation charm");
@@ -209,6 +224,8 @@ public class ItemsFilter {
         blocked.add("trailblazer graceful ornament kit");
         blocked.add("trailblazer globe");
         blocked.add("trailblazer rug");
+        blocked.add("trailblazer cane");
+        blocked.add("trailblazer reloaded bulwark ornament kit");
         blocked.add("trailblazer graceful dye (pack of 6)");
         blocked.add("trailblazer relic hunter (t1) armour set");
         blocked.add("trailblazer relic hunter (t2)");
@@ -254,6 +271,7 @@ public class ItemsFilter {
         blocked.add("shattered boots (t1)");
         blocked.add("shattered boots (t2)");
         blocked.add("shattered boots (t3)");
+        blocked.add("shattered cane");
         blocked.add("trailblazer reloaded banner");
         blocked.add("trailblazer reloaded home teleport scroll");
         blocked.add("trailblazer reloaded death scroll");

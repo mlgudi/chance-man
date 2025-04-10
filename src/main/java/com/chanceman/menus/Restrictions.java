@@ -3,7 +3,7 @@ package com.chanceman.menus;
 import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
 import net.runelite.api.Client;
-import net.runelite.api.InventoryID;
+import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.Widget;
@@ -42,8 +42,8 @@ public class Restrictions
 		enabledSkillOps.clear();
 		availableRunes.clear();
 
-		ItemContainer equippedItems = client.getItemContainer(InventoryID.EQUIPMENT);
-		ItemContainer inventoryItems = client.getItemContainer(InventoryID.INVENTORY);
+		ItemContainer equippedItems = client.getItemContainer(InventoryID.WORN);
+		ItemContainer inventoryItems = client.getItemContainer(InventoryID.INV);
 
 		if (equippedItems != null)
 		{
