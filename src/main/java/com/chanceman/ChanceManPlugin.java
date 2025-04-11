@@ -297,8 +297,10 @@ public class ChanceManPlugin extends Plugin
         EnumSet<WorldType> worldTypes = client.getWorldType();
         return !(worldTypes.contains(WorldType.DEADMAN)
                 || worldTypes.contains(WorldType.SEASONAL)
-                || worldTypes.contains(WorldType.HIGH_RISK)
-                || worldTypes.contains(WorldType.PVP));
+                || worldTypes.contains(WorldType.BETA_WORLD)
+                || worldTypes.contains(WorldType.PVP_ARENA)
+                || worldTypes.contains(WorldType.QUEST_SPEEDRUNNING)
+                || worldTypes.contains(WorldType.TOURNAMENT_WORLD));
     }
 
     public boolean isTradeable(int itemId)
