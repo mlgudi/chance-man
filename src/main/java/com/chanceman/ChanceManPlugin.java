@@ -3,7 +3,9 @@ package com.chanceman;
 
 import com.chanceman.account.AccountChanged;
 import com.chanceman.account.AccountManager;
+import com.chanceman.filters.EnsouledHeadMapping;
 import com.chanceman.menus.ActionHandler;
+import com.chanceman.filters.ItemsFilter;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -66,6 +68,8 @@ public class ChanceManPlugin extends Plugin
     private RollAnimationManager rollAnimationManager;
     @Inject
     private EventBus eventBus;
+    @Inject
+    private ItemsFilter itemsFilter;
 
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
@@ -146,17 +150,18 @@ public class ChanceManPlugin extends Plugin
     /**
      * Refreshes the list of tradeable item IDs based on the current configuration.
      */
-    private void refreshTradeableItems()
-    {
+    public void refreshTradeableItems() {
         clientThread.invokeLater(() -> {
             allTradeableItems.clear();
-            for (int i = 0; i < 35000; i++)
-            {
+            for (int i = 0; i < 40000; i++) {
                 ItemComposition comp = itemManager.getItemComposition(i);
-                if (comp != null && comp.isTradeable() && !isNotTracked(i) && !ItemsFilter.isBlocked(comp.getName()))
-                {
-                    if (config.freeToPlay() && comp.isMembers())
-                    {
+                if (comp != null && comp.isTradeable() && !isNotTracked(i)
+                        && !ItemsFilter.isBlocked(i, config.enableFlatpacks(), config.enableArmourSets())) {
+                    if (config.freeToPlay() && comp.isMembers()) {
+                        continue;
+                    }
+                    if (!ItemsFilter.isPoisonEligible(i, config.requireWeaponPoison(),
+                            unlockedItemsManager.getUnlockedItems())) {
                         continue;
                     }
                     allTradeableItems.add(i);
@@ -169,14 +174,15 @@ public class ChanceManPlugin extends Plugin
         });
     }
 
+
     @Subscribe
-    public void onConfigChanged(net.runelite.client.events.ConfigChanged event) {
-        if (!event.getGroup().equals("chanceman")) {
-            return;
-        }
-        if (event.getKey().equals("freeToPlay")) {
-            refreshTradeableItems();
-        }
+    public void onConfigChanged(net.runelite.client.events.ConfigChanged event)
+    {
+        if (!event.getGroup().equals("chanceman")) { return; }
+        if (event.getKey().equals("freeToPlay")) { refreshTradeableItems(); }
+        if (event.getKey().equals("enableFlatpacks")) { refreshTradeableItems(); }
+        if (event.getKey().equals("enableArmourSets")) { refreshTradeableItems(); }
+        if (event.getKey().equals("requireWeaponPoison")) { refreshTradeableItems(); }
     }
 
     @Subscribe
@@ -201,10 +207,9 @@ public class ChanceManPlugin extends Plugin
     }
 
     @Subscribe
-    public void onScriptPostFired(ScriptPostFired event) {
-        if (event.getScriptId() == GE_SEARCH_BUILD_SCRIPT) {
-            killSearchResults();
-        }
+    public void onScriptPostFired(ScriptPostFired event)
+    {
+        if (event.getScriptId() == GE_SEARCH_BUILD_SCRIPT) { killSearchResults(); }
     }
 
     private void killSearchResults() {
@@ -231,21 +236,15 @@ public class ChanceManPlugin extends Plugin
     public void onItemSpawned(ItemSpawned event)
     {
         if (!accountManager.ready()) return;
-        if (!isNormalWorld())
-        {
-            return;
-        }
+        if (!isNormalWorld()) return;
+
         TileItem tileItem = (TileItem) event.getItem();
         int itemId = tileItem.getId();
         ItemComposition comp = itemManager.getItemComposition(itemId);
         String name = (comp != null && comp.getName() != null) ? comp.getName() : tileItem.toString();
-        if (name.toLowerCase().contains("ensouled"))
-        {
+        if (name.toLowerCase().contains("ensouled")) {
             int mappedId = ItemsFilter.getEnsouledHeadId(name);
-            if (mappedId != ItemsFilter.DEFAULT_ENSOULED_HEAD_ID)
-            {
-                itemId = mappedId;
-            }
+            if (mappedId != EnsouledHeadMapping.DEFAULT_ENSOULED_HEAD_ID) { itemId = mappedId; }
         }
         int canonicalItemId = itemManager.canonicalize(itemId);
         if (!isTradeable(canonicalItemId) || isNotTracked(canonicalItemId))
@@ -312,7 +311,7 @@ public class ChanceManPlugin extends Plugin
     public boolean isNotTracked(int itemId)
     {
         return itemId == 995 || itemId == 13191 || itemId == 13190 ||
-                itemId == 7588 || itemId == 1589 || itemId == 7590 || itemId == 7591;
+                itemId == 7587 || itemId == 7588 || itemId == 7589 || itemId == 7590 || itemId == 7591;
     }
 
     public boolean isInPlay(int itemId)

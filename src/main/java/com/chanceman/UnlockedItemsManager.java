@@ -1,6 +1,7 @@
 package com.chanceman;
 
 import com.chanceman.account.AccountManager;
+import com.chanceman.filters.PoisonWeapons;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import lombok.Setter;
