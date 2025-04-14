@@ -270,6 +270,8 @@ public class ChanceManPlugin extends Plugin
     public void onItemContainerChanged(ItemContainerChanged event)
     {
         if (!accountManager.ready()) return;
+        if (!isNormalWorld()) return;
+
         if (event.getContainerId() == 93)
         {
             Set<Integer> processed = new HashSet<>();
