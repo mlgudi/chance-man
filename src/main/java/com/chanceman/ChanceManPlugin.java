@@ -156,7 +156,7 @@ public class ChanceManPlugin extends Plugin
             for (int i = 0; i < 40000; i++) {
                 ItemComposition comp = itemManager.getItemComposition(i);
                 if (comp != null && comp.isTradeable() && !isNotTracked(i)
-                        && !ItemsFilter.isBlocked(i, config.enableFlatpacks(), config.enableArmourSets())) {
+                        && !ItemsFilter.isBlocked(i, config.enableFlatpacks(), config.enableItemSets())) {
                     if (config.freeToPlay() && comp.isMembers()) {
                         continue;
                     }
@@ -181,7 +181,7 @@ public class ChanceManPlugin extends Plugin
         if (!event.getGroup().equals("chanceman")) { return; }
         if (event.getKey().equals("freeToPlay")) { refreshTradeableItems(); }
         if (event.getKey().equals("enableFlatpacks")) { refreshTradeableItems(); }
-        if (event.getKey().equals("enableArmourSets")) { refreshTradeableItems(); }
+        if (event.getKey().equals("enableItemSets")) { refreshTradeableItems(); }
         if (event.getKey().equals("requireWeaponPoison")) { refreshTradeableItems(); }
     }
 

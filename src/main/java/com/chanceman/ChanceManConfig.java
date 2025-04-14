@@ -19,13 +19,13 @@ public interface ChanceManConfig extends Config
     }
 
     @ConfigItem(
-            keyName = "enableArmourSets",
-            name = "Roll Armour Sets",
-            description = "Include armour set items in the rollable items list. Disabling this will exclude any" +
-                    " armour set items from random rolls.",
+            keyName = "enableItemSets",
+            name = "Roll Item Sets",
+            description = "Include item set items in the rollable items list. Disabling this will exclude any" +
+                    " item set items from random rolls.",
             position = 2
     )
-    default boolean enableArmourSets() { return true; }
+    default boolean enableItemSets() { return true; }
 
     @ConfigItem(
             keyName = "enableFlatpacks",

@@ -11,16 +11,16 @@ public class ItemsFilter {
      * Checks if an item is blocked.
      * An item is blocked if it is in the blocked set,
      * or if it is a flatpack and flatpacks are disabled,
-     * or if it is an armour set and armour sets are disabled.
+     * or if it is an item set and item sets are disabled.
      *
      * @param itemId the item id
      * @param enableFlatpacks true if flatpack items are allowed
-     * @param enableArmourSets true if armour set items are allowed
+     * @param enableItemSets true if item set items are allowed
      * @return true if the item is blocked; false otherwise
      */
-    public static boolean isBlocked(int itemId, boolean enableFlatpacks, boolean enableArmourSets) {
+    public static boolean isBlocked(int itemId, boolean enableFlatpacks, boolean enableItemSets) {
         return (!enableFlatpacks && Flatpacks.isFlatpack(itemId))
-                || (!enableArmourSets && ArmourSets.isArmourSet(itemId))
+                || (!enableItemSets && ItemSets.isItemSet(itemId))
                 || BlockedItems.getBLOCKED_ITEMS().contains(itemId);
     }
 
