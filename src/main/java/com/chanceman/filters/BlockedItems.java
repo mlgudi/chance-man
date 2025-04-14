@@ -271,8 +271,7 @@ public final class BlockedItems {
         blocked.add(ItemID.SET_LEAGUE_5_RELICHUNTER_T3); // Raging Echoes Relic Hunter (t3) Armour Set
 
         // Unobtainable Items
-        blocked.add(ItemID.CORNFLOUR); // Cornflour
-        blocked.add(ItemID.COOKED_CHOMPY); // Cooked Chompy
+        blocked.add(ItemID.CHOMPY_COOKED); // Cooked Chompy (roasted)
         blocked.add(ItemID.CHICKENQUEST_CORNFLOUR); // Cornflour
         blocked.add(ItemID.POH_FLATPACK_CRYSTALBALL1); // Crystal Ball (FLATPACK)
         blocked.add(ItemID.POH_FLATPACK_CRYSTALBALL2); // Elemental Sphere (FLATPACK)
