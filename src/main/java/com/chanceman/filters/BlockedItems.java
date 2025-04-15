@@ -99,7 +99,7 @@ public final class BlockedItems {
         blocked.add(ItemID.SIGIL_OF_SLAUGHTER_UNATTUNED); // Sigil Of Slaughter
         blocked.add(ItemID.SIGIL_OF_SPECIALISED_STRIKES_UNATTUNED); // Sigil Of Specialised Strikes
         blocked.add(ItemID.SIGIL_OF_STAMINA_UNATTUNED); // Sigil Of Stamina
-        blocked.add(ItemID.SIGIL_OF_STORAGE_ATTUNED); // Sigil Of Storage
+        blocked.add(ItemID.SIGIL_OF_STORAGE_UNATTUNED); // Sigil Of Storage
         blocked.add(ItemID.SIGIL_OF_SUPREME_STAMINA_UNATTUNED); // Sigil Of Supreme Stamina
         blocked.add(ItemID.SIGIL_OF_SUSTENANCE_UNATTUNED); // Sigil Of Sustenance
         blocked.add(ItemID.SIGIL_OF_SWASHBUCKLER_UNATTUNED); // Sigil Of Swashbuckler

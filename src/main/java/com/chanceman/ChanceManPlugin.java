@@ -76,6 +76,7 @@ public class ChanceManPlugin extends Plugin
     private ExecutorService fileExecutor;
     @Getter private final HashSet<Integer> allTradeableItems = new LinkedHashSet<>();
     private static final int GE_SEARCH_BUILD_SCRIPT = 751;
+    private boolean tradeableItemsInitialized = false;
 
     @Provides
     ChanceManConfig provideConfig(ConfigManager configManager)
@@ -93,11 +94,11 @@ public class ChanceManPlugin extends Plugin
         unlockedItemsManager.setExecutor(fileExecutor);
         rolledItemsManager.setExecutor(fileExecutor);
         rollAnimationManager.startUp();
+
         if (!isNormalWorld())
         {
             return;
         }
-        refreshTradeableItems();
 
         chanceManPanel = new ChanceManPanel(
                 unlockedItemsManager, rolledItemsManager, itemManager, allTradeableItems, clientThread,
@@ -144,6 +145,7 @@ public class ChanceManPlugin extends Plugin
         navButton = null;
         fileExecutor = null;
         allTradeableItems.clear();
+        tradeableItemsInitialized = false;
         accountManager.reset();
     }
 
@@ -199,6 +201,12 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
+        if (!tradeableItemsInitialized && client.getGameState() == GameState.LOGGED_IN)
+        {
+            refreshTradeableItems();
+            tradeableItemsInitialized = true;
+        }
+
         rollAnimationManager.process();
         if (chanceManPanel != null)
         {
