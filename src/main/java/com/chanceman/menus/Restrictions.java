@@ -3,19 +3,51 @@ package com.chanceman.menus;
 import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
 import net.runelite.api.Client;
+import net.runelite.api.coords.WorldArea;
+import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InventoryID;
 import net.runelite.api.ItemContainer;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.api.EnumComposition;
+import net.runelite.api.EnumID;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.*;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Arrays;
 
 @Singleton
 public class Restrictions
 {
+	private static final int[] RUNE_POUCH_TYPE_VARBITS = {
+			29,    // RUNE_POUCH_RUNE1
+			1622,  // RUNE_POUCH_RUNE2
+			1623,  // RUNE_POUCH_RUNE3
+			14285, // RUNE_POUCH_RUNE4
+			15373, // RUNE_POUCH_RUNE5
+			15374  // RUNE_POUCH_RUNE6
+	};
+
+	private static final int[] RUNE_POUCH_AMOUNT_VARBITS = {
+			1624,  // RUNE_POUCH_AMOUNT1
+			1625,  // RUNE_POUCH_AMOUNT2
+			1626,  // RUNE_POUCH_AMOUNT3
+			14286, // RUNE_POUCH_AMOUNT4
+			15375, // RUNE_POUCH_AMOUNT5
+			15376  // RUNE_POUCH_AMOUNT6
+	};
+
+	private static final WorldArea FOUNTAIN_OF_RUNE_AREA =
+			new WorldArea(3367, 3890, 13, 9, 0);
+
+	private boolean isInFountainArea()
+	{
+		WorldPoint lp = client.getLocalPlayer().getWorldLocation();
+		return FOUNTAIN_OF_RUNE_AREA.contains(lp);
+	}
 
 	public static final int SPELL_REQUIREMENT_OVERLAY_NORMAL = 14287050;
 	public static final int AUTOCAST_REQUIREMENT_OVERLAY_NORMAL = 13172738;
@@ -64,6 +96,28 @@ public class Restrictions
 				if (SkillItem.isSkillItem(id)) enabledSkillOps.add(ITEM_TO_OP.get(id));
 			});
 		}
+
+		EnumComposition pouchEnum = client.getEnum(EnumID.RUNEPOUCH_RUNE);
+		for (int i = 0; i < 6; i++)
+		{
+			int qty     = client.getVarbitValue(RUNE_POUCH_AMOUNT_VARBITS[i]);
+			int typeIdx = client.getVarbitValue(RUNE_POUCH_TYPE_VARBITS[i]);
+			if (qty <= 0)
+			{
+				continue;
+			}
+
+			int runeId = pouchEnum.getIntValue(typeIdx);
+			if (!plugin.isInPlay(runeId) || !unlockedItemsManager.isUnlocked(runeId))
+			{
+				continue;
+			}
+
+			if (RuneProvider.isInvProvider(runeId))
+			{
+				availableRunes.addAll(RuneProvider.getProvidedRunes(runeId));
+			}
+		}
 	}
 
 	public boolean isSkillOpEnabled(String option)
@@ -74,6 +128,8 @@ public class Restrictions
 
 	public boolean isSpellOpEnabled()
 	{
+		if (isInFountainArea()) { return true; }
+
 		Widget spellOverlay = client.getWidget(SPELL_REQUIREMENT_OVERLAY_NORMAL);
 		if (spellOverlay != null) return processChildren(spellOverlay);
 

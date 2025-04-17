@@ -19,22 +19,39 @@ import net.runelite.client.util.Text;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.util.EnumSet;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 @Singleton
 public class ActionHandler {
 
-	private final HashSet<MenuAction> disabledActions = new HashSet<>() {{
-		add(MenuAction.CC_OP); // covers all inventory item ops
-		add(MenuAction.WIDGET_TARGET); // disable Use options on locked items
-		add(MenuAction.WIDGET_TARGET_ON_WIDGET); // disable using other items on locked items
-		add(MenuAction.GROUND_ITEM_FIRST_OPTION);
-		add(MenuAction.GROUND_ITEM_SECOND_OPTION);
-		add(MenuAction.GROUND_ITEM_THIRD_OPTION);
-		add(MenuAction.GROUND_ITEM_FOURTH_OPTION);
-		add(MenuAction.GROUND_ITEM_FIFTH_OPTION);
-	}};
+
+	private static final Set<MenuAction> disabledActions = EnumSet.of(
+			MenuAction.CC_OP,               // inventory “Use” on locked
+			MenuAction.WIDGET_TARGET,       // “Use” on widgets
+			MenuAction.WIDGET_TARGET_ON_WIDGET  // “Use” on widget -> widget
+	);
+
+	private static final Set<MenuAction> GROUND_ACTIONS = EnumSet.of(
+			MenuAction.GROUND_ITEM_FIRST_OPTION,
+			MenuAction.GROUND_ITEM_SECOND_OPTION,
+			MenuAction.GROUND_ITEM_THIRD_OPTION,
+			MenuAction.GROUND_ITEM_FOURTH_OPTION,
+			MenuAction.GROUND_ITEM_FIFTH_OPTION
+	);
+
+	/**
+	 * Normalize a MenuEntryAdded into the base item ID.
+	 */
+	private int getItemId(MenuEntryAdded event, MenuEntry entry)
+	{
+		int raw = GROUND_ACTIONS.contains(entry.getType())
+				? event.getIdentifier()
+				: Math.max(event.getItemId(), entry.getItemId());
+		return plugin.getItemManager().canonicalize(raw);
+	}
 
 	private final HashSet<Integer> enabledUIs = new HashSet<>() {{
 		add(EnabledUI.BANK.getId());
@@ -95,11 +112,11 @@ public class ActionHandler {
 
 		MenuEntry entry = event.getMenuEntry();
 		MenuAction action = entry.getType();
-		int id = Math.max(event.getItemId(), entry.getItemId());
+		int id = getItemId(event, entry);
 		boolean enabled;
 		// Check if the entry looks like it's for a ground item.
 		if (isGroundItem(entry)) {
-			enabled = !isLockedGroundItem(entry);
+			enabled = !isLockedGroundItem(id);
 		} else {
 			enabled = isEnabled(id, entry, action);
 		}
@@ -137,20 +154,14 @@ public class ActionHandler {
 	}
 
 	/**
-	 * Checks if a MenuEntry represents a locked ground item.
-	 * That is, if it's a ground item action (such as "Take") for an item that is tradeable,
-	 * not excluded, and still locked.
+	 * @param itemId canonicalized item ID of a ground item
+	 * @return true if it’s tradeable, tracked, and still locked
 	 */
-	private boolean isLockedGroundItem(MenuEntry entry) {
-		String option = Text.removeTags(entry.getOption()).toLowerCase();
-		// Always allow "Drop" actions.
-		if (option.equalsIgnoreCase("drop"))
-			return false;
-		int rawItemId = entry.getIdentifier() != -1 ? entry.getIdentifier() : entry.getItemId();
-		int canonicalId = plugin.getItemManager().canonicalize(rawItemId);
-		return plugin.isTradeable(canonicalId)
-				&& !plugin.isNotTracked(canonicalId)
-				&& !unlockedItemsManager.isUnlocked(canonicalId);
+	private boolean isLockedGroundItem(int itemId)
+	{
+		return plugin.isTradeable(itemId)
+				&& !plugin.isNotTracked(itemId)
+				&& !unlockedItemsManager.isUnlocked(itemId);
 	}
 
 	/**
@@ -164,7 +175,11 @@ public class ActionHandler {
 		// Always allow "Drop"
 		if (option.equalsIgnoreCase("drop"))
 			return true;
-
+		if (option.equalsIgnoreCase("clean")) {
+			return unlockedItemsManager.isUnlocked(id);
+		}
+		if (option.equalsIgnoreCase("Rub"))
+			return unlockedItemsManager.isUnlocked(id);
 		if (SkillOp.isSkillOp(option))
 			return restrictions.isSkillOpEnabled(option);
 		else if (Spell.isSpell(target))
@@ -180,7 +195,7 @@ public class ActionHandler {
 			return true;
 		if (id == 0 || id == -1 || !plugin.isInPlay(id))
 			return true;
-		return unlockedItemsManager.isUnlocked(entry.getItemId());
+		return unlockedItemsManager.isUnlocked(id);
 	}
 
 	/**
