@@ -175,10 +175,11 @@ public class ActionHandler {
 		// Always allow "Drop"
 		if (option.equalsIgnoreCase("drop"))
 			return true;
-		if (option.equalsIgnoreCase("clean") && plugin.isInPlay(id))
-		 	return unlockedItemsManager.isUnlocked(id);
-		if (option.equalsIgnoreCase("rub") && plugin.isInPlay(id))
-		 	return unlockedItemsManager.isUnlocked(id);
+		if (option.equalsIgnoreCase("clean") || option.equalsIgnoreCase("rub"))
+		{
+			if (!plugin.isInPlay(id)) { return true; }
+			return unlockedItemsManager.isUnlocked(id);
+		}
 		if (SkillOp.isSkillOp(option))
 			return restrictions.isSkillOpEnabled(option);
 		else if (Spell.isSpell(target))
