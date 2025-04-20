@@ -175,11 +175,10 @@ public class ActionHandler {
 		// Always allow "Drop"
 		if (option.equalsIgnoreCase("drop"))
 			return true;
-		if (option.equalsIgnoreCase("clean")) {
-			return unlockedItemsManager.isUnlocked(id);
-		}
-		if (option.equalsIgnoreCase("Rub"))
-			return unlockedItemsManager.isUnlocked(id);
+		if (option.equalsIgnoreCase("clean") && plugin.isInPlay(id))
+		 	return unlockedItemsManager.isUnlocked(id);
+		if (option.equalsIgnoreCase("rub") && plugin.isInPlay(id))
+		 	return unlockedItemsManager.isUnlocked(id);
 		if (SkillOp.isSkillOp(option))
 			return restrictions.isSkillOpEnabled(option);
 		else if (Spell.isSpell(target))
@@ -187,7 +186,8 @@ public class ActionHandler {
 
 		boolean enabled;
 		if (enabledUiOpen()) {
-			enabled = option.startsWith("Deposit") || option.startsWith("Examine") || option.startsWith("Withdraw");
+			enabled = option.startsWith("Deposit") || option.startsWith("Examine") || option.startsWith("Withdraw")
+					|| option.startsWith("Release");
 		} else {
 			enabled = !disabledActions.contains(action);
 		}
