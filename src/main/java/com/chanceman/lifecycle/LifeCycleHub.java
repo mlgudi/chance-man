@@ -1,7 +1,5 @@
 package com.chanceman.lifecycle;
 
-import lombok.extern.slf4j.Slf4j;
-
 import javax.inject.Singleton;
 import java.util.Set;
 import java.util.UUID;
@@ -14,7 +12,6 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>To ensure proper registration, the implementation should call {@link ILifeCycle#init(LifeCycleHub)} from either
  * the constructor or a method annotated with the @Inject.</p>
  */
-@Slf4j
 @Singleton
 public class LifeCycleHub
 {
@@ -32,9 +29,6 @@ public class LifeCycleHub
 		if (lifeCycleUUIDs.contains(lifeCycle.getUuid())) return;
 		lifeCycleUUIDs.add(lifeCycle.getUuid());
 		lifeCycles.put(lifeCycle.getUuid(), lifeCycle);
-		String debug = String.format("Registered ILifeCycle: %s", lifeCycle.getClass().getName());
-		log.debug(debug);
-		System.out.println(debug);
 	}
 
 	/**
@@ -46,9 +40,6 @@ public class LifeCycleHub
 	{
 		lifeCycleUUIDs.remove(lifeCycle.getUuid());
 		lifeCycles.remove(lifeCycle.getUuid());
-		String debug = String.format("Unregistered ILifeCycle: %s", lifeCycle.getClass().getName());
-		log.debug(debug);
-		System.out.println(debug);
 	}
 
 	/**
