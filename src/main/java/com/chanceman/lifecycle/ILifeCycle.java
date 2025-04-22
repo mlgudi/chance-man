@@ -14,7 +14,6 @@ import java.util.UUID;
  */
 public interface ILifeCycle
 {
-	UUID getUuid();
 
 	void setLifeCycleHub(LifeCycleHub lifeCycleHub);
 	LifeCycleHub getLifeCycleHub();

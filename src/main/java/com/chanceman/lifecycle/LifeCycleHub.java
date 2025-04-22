@@ -2,7 +2,6 @@ package com.chanceman.lifecycle;
 
 import javax.inject.Singleton;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
@@ -16,8 +15,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LifeCycleHub
 {
 
-	private final Set<UUID> lifeCycleUUIDs = ConcurrentHashMap.newKeySet();
-	private final ConcurrentHashMap<UUID, ILifeCycle> lifeCycles = new ConcurrentHashMap<>();
+	private final Set<ILifeCycle> lifeCycles = ConcurrentHashMap.newKeySet();
 
 	/**
 	 * <p>Registers an ILifeCycle with the LifeCycleHub. Upon plugin startUp/shutDown, any currently registered</p>
@@ -26,9 +24,8 @@ public class LifeCycleHub
 	 */
 	public void register(ILifeCycle lifeCycle)
 	{
-		if (lifeCycleUUIDs.contains(lifeCycle.getUuid())) return;
-		lifeCycleUUIDs.add(lifeCycle.getUuid());
-		lifeCycles.put(lifeCycle.getUuid(), lifeCycle);
+		if (lifeCycle == null) return;
+		lifeCycles.add(lifeCycle);
 	}
 
 	/**
@@ -38,8 +35,7 @@ public class LifeCycleHub
 	 */
 	public void unregister(ILifeCycle lifeCycle)
 	{
-		lifeCycleUUIDs.remove(lifeCycle.getUuid());
-		lifeCycles.remove(lifeCycle.getUuid());
+		lifeCycles.remove(lifeCycle);
 	}
 
 	/**
@@ -48,13 +44,11 @@ public class LifeCycleHub
 	 */
 	public void startUp()
 	{
-		for (UUID uuid : lifeCycleUUIDs)
+		for (ILifeCycle lifeCycle : lifeCycles)
 		{
-			ILifeCycle lifeCycle = lifeCycles.get(uuid);
 			if (lifeCycle == null)
 			{
-				lifeCycleUUIDs.remove(uuid);
-				lifeCycles.remove(uuid);
+				lifeCycles.remove(null);
 				continue;
 			}
 			lifeCycle.startUp();
@@ -67,13 +61,11 @@ public class LifeCycleHub
 	 */
 	public void shutDown()
 	{
-		for (UUID uuid : lifeCycleUUIDs)
+		for (ILifeCycle lifeCycle : lifeCycles)
 		{
-			ILifeCycle lifeCycle = lifeCycles.get(uuid);
 			if (lifeCycle == null)
 			{
-				lifeCycleUUIDs.remove(uuid);
-				lifeCycles.remove(uuid);
+				lifeCycles.remove(null);
 				continue;
 			}
 			lifeCycle.shutDown();

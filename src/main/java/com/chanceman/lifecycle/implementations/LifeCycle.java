@@ -6,7 +6,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import javax.inject.Inject;
-import java.util.UUID;
 
 /**
  * <p>A base implementation of the {@link ILifeCycle} interface.</p>
@@ -16,7 +15,7 @@ import java.util.UUID;
  */
 public class LifeCycle implements ILifeCycle
 {
-	@Getter private final UUID uuid = UUID.randomUUID();
+
 	@Getter @Setter private LifeCycleHub lifeCycleHub;
 	@Getter @Setter private boolean started = false;
 
