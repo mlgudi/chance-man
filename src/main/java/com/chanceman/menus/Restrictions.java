@@ -62,11 +62,22 @@ public class Restrictions extends EventUser
 		}
 	}
 
-	@Inject private ChanceManPlugin plugin;
-	@Inject private Client client;
-	@Inject private UnlockedItemsManager unlockedItemsManager;
+	private final ChanceManPlugin plugin;
+	private final Client client;
+	private final UnlockedItemsManager unlockedItemsManager;
 	private final HashSet<SkillOp> enabledSkillOps = new HashSet<>();
 	private final HashSet<Integer> availableRunes = new HashSet<>();
+
+	@Inject
+	public Restrictions(
+			ChanceManPlugin plugin,
+			Client client,
+			UnlockedItemsManager unlockedItemsManager
+	) {
+		this.plugin = plugin;
+		this.client = client;
+		this.unlockedItemsManager = unlockedItemsManager;
+	}
 
 	@Subscribe
 	public void onGameTick(GameTick event)

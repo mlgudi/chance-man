@@ -39,33 +39,29 @@ public class ActionHandler extends EventUser
 			MenuAction.GROUND_ITEM_FIFTH_OPTION
 	);
 
-	/**
-	 * Normalize a MenuEntryAdded into the base item ID.
-	 */
-	private int getItemId(MenuEntryAdded event, MenuEntry entry)
-	{
-		int raw = GROUND_ACTIONS.contains(entry.getType())
-				? event.getIdentifier()
-				: Math.max(event.getItemId(), entry.getItemId());
-		return plugin.getItemManager().canonicalize(raw);
-	}
-
-	private final HashSet<Integer> enabledUIs = new HashSet<>() {{
+	private static final HashSet<Integer> ENABLED_UIS = new HashSet<>() {{
 		add(EnabledUI.BANK.getId());
 		add(EnabledUI.DEPOSIT_BOX.getId());
 	}};
 
+	private final Client client;
+	private final ChanceManPlugin plugin;
+	private final Restrictions restrictions;
+	private final UnlockedItemsManager unlockedItemsManager;
+	@Getter @Setter private int enabledUIOpen = -1;
+
 	@Inject
-	private Client client;
-	@Inject
-	private ChanceManPlugin plugin;
-	@Inject
-	private Restrictions restrictions;
-	@Inject
-	private UnlockedItemsManager unlockedItemsManager;
-	@Getter
-	@Setter
-	private int enabledUIOpen = -1;
+	public ActionHandler(
+			Client client,
+			ChanceManPlugin plugin,
+			Restrictions restrictions,
+			UnlockedItemsManager unlockedItemsManager
+	) {
+		this.client = client;
+		this.plugin = plugin;
+		this.restrictions = restrictions;
+		this.unlockedItemsManager = unlockedItemsManager;
+	}
 
 	// A no-op click handler that marks a menu entry as disabled.
 	private final Consumer<MenuEntry> DISABLED = e -> { };
@@ -81,13 +77,13 @@ public class ActionHandler extends EventUser
 
 	@Subscribe
 	public void onWidgetClosed(WidgetClosed event) {
-		if (enabledUIs.contains(event.getGroupId()))
+		if (ENABLED_UIS.contains(event.getGroupId()))
 			enabledUIOpen = -1;
 	}
 
 	@Subscribe
 	public void onWidgetLoaded(WidgetLoaded event) {
-		if (enabledUIs.contains(event.getGroupId()))
+		if (ENABLED_UIS.contains(event.getGroupId()))
 			enabledUIOpen = event.getGroupId();
 	}
 
@@ -124,6 +120,17 @@ public class ActionHandler extends EventUser
 		}
 		// Extra safeguard for ground items.
 		handleGroundItems(plugin.getItemManager(), unlockedItemsManager, event, plugin);
+	}
+
+	/**
+	 * Normalize a MenuEntryAdded into the base item ID.
+	 */
+	private int getItemId(MenuEntryAdded event, MenuEntry entry)
+	{
+		int raw = GROUND_ACTIONS.contains(entry.getType())
+				? event.getIdentifier()
+				: Math.max(event.getItemId(), entry.getItemId());
+		return plugin.getItemManager().canonicalize(raw);
 	}
 
 	/**

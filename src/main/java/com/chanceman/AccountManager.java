@@ -22,14 +22,14 @@ import javax.inject.Singleton;
 public class AccountManager extends EventUser
 {
 
-	@Inject
-	private Client client;
+	private final Client client;
 
 	@Inject
-	private UnlockedItemsManager unlockedItemsManager;
-
-	@Inject
-	private RolledItemsManager rolledItemsManager;
+	public AccountManager(
+			Client client
+	) {
+		this.client = client;
+	}
 
 	private long hash = -1;
 	@Getter @Setter private volatile String playerName;
