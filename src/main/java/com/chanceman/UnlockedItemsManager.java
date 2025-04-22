@@ -1,6 +1,5 @@
 package com.chanceman;
 
-import com.chanceman.account.AccountManager;
 import com.google.gson.Gson;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
