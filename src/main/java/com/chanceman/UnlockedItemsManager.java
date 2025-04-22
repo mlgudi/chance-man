@@ -9,19 +9,11 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.BufferedWriter;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
+import java.io.Reader;
+import java.nio.file.*;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.Comparator;
 
 import static net.runelite.client.RuneLite.RUNELITE_DIR;
 
@@ -45,12 +37,37 @@ public class UnlockedItemsManager
         return accountManager.getPlayerName() != null;
     }
 
-    private Path getFilePath()
+    /**
+     * Atomically moves source→target, but if ATOMIC_MOVE fails retries a normal move with REPLACE_EXISTING.
+     */
+    private void safeMove(Path source, Path target, CopyOption... opts) throws IOException
     {
-        return Path.of(RUNELITE_DIR.getPath(),
-                "chanceman",
-                accountManager.getPlayerName(),
-                "chanceman_unlocked.json");
+        try
+        {
+            Files.move(source, target, opts);
+        }
+        catch (AtomicMoveNotSupportedException | AccessDeniedException ex)
+        {
+            // retry without ATOMIC_MOVE but with REPLACE_EXISTING
+            Set<CopyOption> fallback = new HashSet<>(Arrays.asList(opts));
+            fallback.remove(StandardCopyOption.ATOMIC_MOVE);
+            fallback.add(StandardCopyOption.REPLACE_EXISTING);
+            Files.move(source, target, fallback.toArray(new CopyOption[0]));
+        }
+    }
+
+    private Path getFilePath() throws IOException
+    {
+        String name = accountManager.getPlayerName();
+        if (name == null)
+        {
+            throw new IOException("Player name is null");
+        }
+        Path dir = RUNELITE_DIR.toPath()
+                .resolve("chanceman")
+                .resolve(name);
+        Files.createDirectories(dir);
+        return dir.resolve("chanceman_unlocked.json");
     }
 
     public boolean isUnlocked(int itemId)
@@ -68,20 +85,36 @@ public class UnlockedItemsManager
 
     public void loadUnlockedItems()
     {
+        if (!ready())
+        {
+            return;
+        }
+
         unlockedItems.clear();
-        Path file = getFilePath();
+        Path file;
         try
         {
-            Files.createDirectories(file.getParent());
-            if (Files.exists(file) && Files.size(file) > 0)
+            file = getFilePath();
+        }
+        catch (IOException ioe)
+        {
+            return;
+        }
+
+        if (!Files.exists(file))
+        {
+            // first‑run: empty set → write an empty JSON file
+            saveUnlockedItems();
+            return;
+        }
+
+        try (Reader r = Files.newBufferedReader(file))
+        {
+            Set<Integer> loaded = gson.fromJson(r,
+                    new com.google.gson.reflect.TypeToken<Set<Integer>>() {}.getType());
+            if (loaded != null)
             {
-                Set<Integer> loaded = gson.fromJson(
-                        Files.newBufferedReader(file),
-                        new com.google.gson.reflect.TypeToken<Set<Integer>>() {}.getType());
-                if (loaded != null)
-                {
-                    unlockedItems.addAll(loaded);
-                }
+                unlockedItems.addAll(loaded);
             }
         }
         catch (IOException e)
@@ -92,46 +125,48 @@ public class UnlockedItemsManager
 
     public void saveUnlockedItems()
     {
-        executor.submit(() -> {
-            Path file = getFilePath();
+        executor.submit(() ->
+        {
+            Path file;
             try
             {
-                Files.createDirectories(file.getParent());
+                file = getFilePath();
+            }
+            catch (IOException ioe)
+            {
+                log.error("Could not resolve file path", ioe);
+                return;
+            }
 
-                // --- rotate backups ---
+            try
+            {
+                // 1) rotate .json → .bak
                 if (Files.exists(file))
                 {
-                    Path backupsDir = file.getParent().resolve("backups");
-                    Files.createDirectories(backupsDir);
-
+                    Path backups = file.getParent().resolve("backups");
+                    Files.createDirectories(backups);
                     String ts = new SimpleDateFormat("yyyyMMddHHmmss").format(new Date());
-                    Path backupFile = backupsDir.resolve(file.getFileName() + "." + ts + ".bak");
-                    Files.copy(file, backupFile, StandardCopyOption.COPY_ATTRIBUTES);
-
-                    // prune older backups, keep only the newest MAX_BACKUPS
-                    try (Stream<Path> stream = Files.list(backupsDir))
-                    {
-                        List<Path> sorted = stream
-                                .filter(p -> p.getFileName().toString().startsWith(file.getFileName().toString() + "."))
-                                .sorted(Comparator.comparing(Path::getFileName).reversed())
-                                .collect(Collectors.toList());
-
-                        for (int i = MAX_BACKUPS; i < sorted.size(); i++)
-                        {
-                            Files.deleteIfExists(sorted.get(i));
-                        }
-                    }
+                    Path bak = backups.resolve(file.getFileName() + "." + ts + ".bak");
+                    safeMove(file, bak,
+                            StandardCopyOption.ATOMIC_MOVE,
+                            StandardCopyOption.REPLACE_EXISTING);
+                    // prune older backups…
+                    Files.list(backups)
+                            .filter(p -> p.getFileName().toString().startsWith(file.getFileName() + "."))
+                            .sorted(Comparator.comparing(Path::getFileName).reversed())
+                            .skip(MAX_BACKUPS)
+                            .forEach(p -> p.toFile().delete());
                 }
 
-                // --- write new state atomically ---
+                // 2) write new JSON to .tmp
                 Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
-                try (BufferedWriter writer = Files.newBufferedWriter(tmp))
+                try (BufferedWriter w = Files.newBufferedWriter(tmp))
                 {
-                    gson.toJson(unlockedItems, writer);
+                    gson.toJson(unlockedItems, w);
                 }
-                Files.move(tmp, file,
-                        StandardCopyOption.ATOMIC_MOVE,
-                        StandardCopyOption.REPLACE_EXISTING);
+
+                // 3) atomically replace .json with .tmp
+                safeMove(tmp, file, StandardCopyOption.ATOMIC_MOVE);
             }
             catch (IOException e)
             {
@@ -139,6 +174,7 @@ public class UnlockedItemsManager
             }
         });
     }
+
 
     /**
      * Retrieves an unmodifiable set of unlocked item IDs.
