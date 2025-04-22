@@ -136,7 +136,6 @@ public class ChanceManPlugin extends Plugin
         {
             fileExecutor.shutdownNow();
         }
-        getInjector().getInstance(ActionHandler.class).shutDown();
 
         // Reset plugin state for a fresh initialization on restart.
         chanceManPanel = null;
