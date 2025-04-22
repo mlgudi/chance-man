@@ -2,17 +2,14 @@ package com.chanceman.menus;
 
 import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
+import com.chanceman.lifecycle.implementations.EventUser;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
-import net.runelite.api.events.MenuOptionClicked;
-import net.runelite.api.events.MenuEntryAdded;
-import net.runelite.api.events.WidgetClosed;
-import net.runelite.api.events.WidgetLoaded;
-import net.runelite.client.eventbus.EventBus;
+import net.runelite.api.events.*;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.util.Text;
@@ -25,8 +22,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 @Singleton
-public class ActionHandler {
-
+public class ActionHandler extends EventUser
+{
 
 	private static final Set<MenuAction> disabledActions = EnumSet.of(
 			MenuAction.CC_OP,               // inventory “Use” on locked
@@ -61,8 +58,6 @@ public class ActionHandler {
 	@Inject
 	private Client client;
 	@Inject
-	private EventBus eventBus;
-	@Inject
 	private ChanceManPlugin plugin;
 	@Inject
 	private Restrictions restrictions;
@@ -74,16 +69,6 @@ public class ActionHandler {
 
 	// A no-op click handler that marks a menu entry as disabled.
 	private final Consumer<MenuEntry> DISABLED = e -> { };
-
-	public void startUp() {
-		eventBus.register(this);
-		eventBus.register(restrictions);
-	}
-
-	public void shutDown() {
-		eventBus.unregister(this);
-		eventBus.unregister(restrictions);
-	}
 
 	private boolean enabledUiOpen() {
 		return enabledUIOpen != -1;

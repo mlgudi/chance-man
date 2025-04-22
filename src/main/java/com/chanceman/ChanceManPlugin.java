@@ -69,6 +69,8 @@ public class ChanceManPlugin extends Plugin
     private RollAnimationManager rollAnimationManager;
     @Inject
     private ItemsFilter itemsFilter;
+    @Inject
+    private ActionHandler actionHandler;
 
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;

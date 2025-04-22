@@ -2,6 +2,7 @@ package com.chanceman.menus;
 
 import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
+import com.chanceman.lifecycle.implementations.EventUser;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
@@ -20,7 +21,7 @@ import java.util.HashSet;
 import java.util.Arrays;
 
 @Singleton
-public class Restrictions
+public class Restrictions extends EventUser
 {
 	private static final int[] RUNE_POUCH_TYPE_VARBITS = {
 			29,    // RUNE_POUCH_RUNE1
