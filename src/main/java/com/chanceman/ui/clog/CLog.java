@@ -164,8 +164,8 @@ public class CLog {
 	}
 
 	private CLogEntry addEntry(int index, boolean initialCreation) {
-		int unlockedId = unlocked.get(index);
-		int rolledId = rolled.get(index);
+		int unlockedId = index < unlocked.size() ? unlocked.get(index) : 0;
+		int rolledId = index < rolled.size() ? rolled.get(index) : 0;
 
 		unlockedIdToIndex.put(unlockedId, index);
 		rolledIdToIndex.put(rolledId, index);
