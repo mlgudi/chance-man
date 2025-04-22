@@ -93,7 +93,6 @@ public class ChanceManPlugin extends Plugin
         fileExecutor = Executors.newSingleThreadExecutor();
         unlockedItemsManager.setExecutor(fileExecutor);
         rolledItemsManager.setExecutor(fileExecutor);
-        rollAnimationManager.startUp();
 
         if (!isNormalWorld())
         {
@@ -126,10 +125,6 @@ public class ChanceManPlugin extends Plugin
         if (overlayManager != null)
         {
             overlayManager.remove(chanceManOverlay);
-        }
-        if (rollAnimationManager != null)
-        {
-            rollAnimationManager.shutdown();
         }
         if (fileExecutor != null)
         {

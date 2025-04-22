@@ -1,5 +1,6 @@
 package com.chanceman;
 
+import com.chanceman.lifecycle.implementations.LifeCycle;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.ChatMessageType;
@@ -21,14 +22,14 @@ import java.util.concurrent.Executors;
  * It processes roll requests asynchronously and handles the roll animation through the overlay.
  */
 @Singleton
-public class RollAnimationManager
+public class RollAnimationManager extends LifeCycle
 {
-    @Inject private ItemManager itemManager;
-    @Inject private Client client;
-    @Inject private ChatMessageManager chatMessageManager;
-    @Inject private ClientThread clientThread;
-    @Inject private UnlockedItemsManager unlockedManager;
-    @Inject private ChanceManOverlay overlay;
+    private final ItemManager itemManager;
+    private final Client client;
+    private final ChatMessageManager chatMessageManager;
+    private final ClientThread clientThread;
+    private final UnlockedItemsManager unlockedManager;
+    private final ChanceManOverlay overlay;
 
     @Setter private HashSet<Integer> allTradeableItems;
     private final Queue<Integer> rollQueue = new ConcurrentLinkedQueue<>();
@@ -41,6 +42,33 @@ public class RollAnimationManager
     @Getter
     @Setter
     private volatile boolean manualRoll = false;
+
+    public RollAnimationManager(Client client, ItemManager itemManager, ChatMessageManager chatMessageManager,
+                                ClientThread clientThread, UnlockedItemsManager unlockedManager, ChanceManOverlay overlay)
+    {
+        this.client = client;
+        this.itemManager = itemManager;
+        this.chatMessageManager = chatMessageManager;
+        this.clientThread = clientThread;
+        this.unlockedManager = unlockedManager;
+        this.overlay = overlay;
+    }
+
+    @Override
+    public void onStartUp() {
+        if (executor == null || executor.isShutdown() || executor.isTerminated()) {
+            executor = Executors.newSingleThreadExecutor();
+        }
+    }
+
+    /**
+     * Shuts down the roll animation executor service.
+     */
+    @Override
+    public void onShutDown()
+    {
+        executor.shutdownNow();
+    }
 
     /**
      * Enqueues an item ID for the roll animation.
@@ -134,19 +162,5 @@ public class RollAnimationManager
     {
         ItemComposition comp = itemManager.getItemComposition(itemId);
         return comp != null ? comp.getName() : "Unknown";
-    }
-
-    public void startUp() {
-        if (executor == null || executor.isShutdown() || executor.isTerminated()) {
-            executor = Executors.newSingleThreadExecutor();
-        }
-    }
-
-    /**
-     * Shuts down the roll animation executor service.
-     */
-    public void shutdown()
-    {
-        executor.shutdownNow();
     }
 }
