@@ -1,5 +1,6 @@
 package com.chanceman;
 
+import com.chanceman.events.ItemRolled;
 import com.chanceman.filters.EnsouledHeadMapping;
 import com.chanceman.lifecycle.LifeCycleHub;
 import com.chanceman.menus.ActionHandler;
@@ -11,6 +12,7 @@ import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.chat.ChatMessageManager;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -75,6 +77,8 @@ public class ChanceManPlugin extends Plugin
     private ActionHandler actionHandler;
     @Inject
     private Provider<ChanceManPanel> panelProvider;
+    @Inject
+    private EventBus eventBus;
 
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
@@ -167,7 +171,12 @@ public class ChanceManPlugin extends Plugin
         if (!accountManager.ready()) return;
         if (!isNormalWorld()) return;
 
-        TileItem tileItem = (TileItem) event.getItem();
+        TileItem tileItem = event.getItem();
+        if (tileItem.getOwnership() != TileItem.OWNERSHIP_SELF)
+        {
+            return;
+        }
+
         int itemId = tileItem.getId();
         ItemComposition comp = itemManager.getItemComposition(itemId);
         String name = (comp != null && comp.getName() != null) ? comp.getName() : tileItem.toString();
@@ -175,24 +184,7 @@ public class ChanceManPlugin extends Plugin
             int mappedId = ItemInfo.getEnsouledHeadId(name);
             if (mappedId != EnsouledHeadMapping.DEFAULT_ENSOULED_HEAD_ID) { itemId = mappedId; }
         }
-        int canonicalItemId = itemManager.canonicalize(itemId);
-        if (!itemInfo.isTradeable(canonicalItemId) || ItemInfo.isNotTracked(canonicalItemId))
-        {
-            return;
-        }
-        if (tileItem.getOwnership() != TileItem.OWNERSHIP_SELF)
-        {
-            return;
-        }
-        if (rolledItemsManager == null)
-        {
-            return;
-        }
-        if (!rolledItemsManager.isRolled(canonicalItemId))
-        {
-            rollAnimationManager.enqueueRoll(canonicalItemId);
-            rolledItemsManager.markRolled(canonicalItemId);
-        }
+        processRollCandidate(itemId);
     }
 
     @Subscribe
@@ -206,19 +198,23 @@ public class ChanceManPlugin extends Plugin
             Set<Integer> processed = new HashSet<>();
             for (net.runelite.api.Item item : event.getItemContainer().getItems())
             {
-                int rawItemId = item.getId();
-                int canonicalId = itemManager.canonicalize(rawItemId);
-                if (!itemInfo.isTradeable(canonicalId) || ItemInfo.isNotTracked(canonicalId))
-                {
-                    continue;
-                }
-                if (!processed.contains(canonicalId) && !rolledItemsManager.isRolled(canonicalId))
-                {
-                    rollAnimationManager.enqueueRoll(canonicalId);
-                    rolledItemsManager.markRolled(canonicalId);
-                    processed.add(canonicalId);
-                }
+                int canonicalId = itemManager.canonicalize(item.getId());
+                processRollCandidate(canonicalId);
+                processed.add(canonicalId);
             }
+        }
+    }
+
+    private void processRollCandidate(int itemId)
+    {
+        int canonicalItemId = itemManager.canonicalize(itemId);
+        if (!itemInfo.isTradeable(canonicalItemId) || ItemInfo.isNotTracked(canonicalItemId))
+        {
+            return;
+        }
+        if (!rolledItemsManager.isRolled(canonicalItemId))
+        {
+            eventBus.post(new ItemRolled(canonicalItemId));
         }
     }
 

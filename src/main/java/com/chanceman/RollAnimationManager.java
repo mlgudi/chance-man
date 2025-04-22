@@ -1,5 +1,7 @@
 package com.chanceman;
 
+import com.chanceman.events.ItemRolled;
+import com.chanceman.events.ItemUnlocked;
 import com.chanceman.filters.ItemInfo;
 import com.chanceman.lifecycle.implementations.EventUser;
 import com.chanceman.lifecycle.implementations.LifeCycle;
@@ -83,6 +85,12 @@ public class RollAnimationManager extends EventUser
         process();
     }
 
+    @Subscribe
+    public void onItemRolled(ItemRolled event)
+    {
+        enqueueRoll(event.getItemId());
+    }
+
     /**
      * Enqueues an item ID for the roll animation.
      *
@@ -118,7 +126,6 @@ public class RollAnimationManager extends EventUser
             Thread.currentThread().interrupt();
         }
         int finalRolledItem = overlay.getFinalItem();
-        unlockedManager.unlockItem(finalRolledItem);
         final boolean wasManualRoll = isManualRoll();
         clientThread.invoke(() -> {
             String message;
@@ -131,6 +138,7 @@ public class RollAnimationManager extends EventUser
             {
                 message = "Unlocked " + "<col=267567>" + getItemName(finalRolledItem) + "</col>"
                         + " by rolling " + "<col=ff0000>" + getItemName(queuedItemId) + "</col>";
+                post(new ItemUnlocked(finalRolledItem, getItemName(finalRolledItem)));
             }
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
         });

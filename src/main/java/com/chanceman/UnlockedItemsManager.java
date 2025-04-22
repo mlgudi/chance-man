@@ -1,6 +1,8 @@
 package com.chanceman;
 
 import com.chanceman.events.AccountChanged;
+import com.chanceman.events.ItemRolled;
+import com.chanceman.events.ItemUnlocked;
 import com.chanceman.lifecycle.implementations.EventUser;
 import com.google.gson.Gson;
 import lombok.Setter;
@@ -48,6 +50,12 @@ public class UnlockedItemsManager extends EventUser
         {
             loadUnlockedItems();
         }
+    }
+
+    @Subscribe
+    private void onItemUnlocked(ItemUnlocked event)
+    {
+        unlockItem(event.getItemId());
     }
 
     public boolean ready()

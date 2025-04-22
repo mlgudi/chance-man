@@ -1,6 +1,7 @@
 package com.chanceman;
 
 import com.chanceman.events.AccountChanged;
+import com.chanceman.events.ItemRolled;
 import com.chanceman.lifecycle.implementations.EventUser;
 import com.google.gson.Gson;
 import lombok.Setter;
@@ -50,6 +51,12 @@ public class RolledItemsManager extends EventUser
         {
             loadRolledItems();
         }
+    }
+
+    @Subscribe
+    public void onItemRolled(ItemRolled event)
+    {
+        markRolled(event.getItemId());
     }
 
     /**
