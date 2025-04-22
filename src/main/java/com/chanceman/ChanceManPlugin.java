@@ -4,6 +4,7 @@ package com.chanceman;
 import com.chanceman.account.AccountChanged;
 import com.chanceman.account.AccountManager;
 import com.chanceman.filters.EnsouledHeadMapping;
+import com.chanceman.lifecycle.LifeCycleHub;
 import com.chanceman.menus.ActionHandler;
 import com.chanceman.filters.ItemsFilter;
 import com.google.gson.Gson;
@@ -70,6 +71,8 @@ public class ChanceManPlugin extends Plugin
     private EventBus eventBus;
     @Inject
     private ItemsFilter itemsFilter;
+    @Inject
+    private LifeCycleHub lifeCycleHub;
 
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
@@ -87,6 +90,7 @@ public class ChanceManPlugin extends Plugin
     @Override
     protected void startUp() throws Exception
     {
+        lifeCycleHub.startUp();
         getInjector().getInstance(ActionHandler.class).startUp();
         eventBus.register(accountManager);
         overlayManager.add(chanceManOverlay);
@@ -120,6 +124,7 @@ public class ChanceManPlugin extends Plugin
     @Override
     protected void shutDown() throws Exception
     {
+        lifeCycleHub.shutDown();
         eventBus.unregister(accountManager);
         if (clientToolbar != null && navButton != null)
         {
