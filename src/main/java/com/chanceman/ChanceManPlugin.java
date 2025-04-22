@@ -89,7 +89,6 @@ public class ChanceManPlugin extends Plugin
     protected void startUp() throws Exception
     {
         lifeCycleHub.startUp();
-        getInjector().getInstance(ActionHandler.class).startUp();
 
         overlayManager.add(chanceManOverlay);
         fileExecutor = Executors.newSingleThreadExecutor();
