@@ -1,8 +1,7 @@
 package com.chanceman;
 
 
-import com.chanceman.account.AccountChanged;
-import com.chanceman.account.AccountManager;
+import com.chanceman.events.AccountChanged;
 import com.chanceman.filters.EnsouledHeadMapping;
 import com.chanceman.lifecycle.LifeCycleHub;
 import com.chanceman.menus.ActionHandler;
@@ -15,7 +14,6 @@ import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.chat.ChatMessageManager;
-import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -39,6 +37,8 @@ import java.util.concurrent.Executors;
 )
 public class ChanceManPlugin extends Plugin
 {
+    @Inject
+    private LifeCycleHub lifeCycleHub;
     @Inject
     private Client client;
     @Inject
@@ -68,11 +68,7 @@ public class ChanceManPlugin extends Plugin
     @Inject
     private RollAnimationManager rollAnimationManager;
     @Inject
-    private EventBus eventBus;
-    @Inject
     private ItemsFilter itemsFilter;
-    @Inject
-    private LifeCycleHub lifeCycleHub;
 
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
@@ -92,7 +88,7 @@ public class ChanceManPlugin extends Plugin
     {
         lifeCycleHub.startUp();
         getInjector().getInstance(ActionHandler.class).startUp();
-        eventBus.register(accountManager);
+
         overlayManager.add(chanceManOverlay);
         fileExecutor = Executors.newSingleThreadExecutor();
         unlockedItemsManager.setExecutor(fileExecutor);
@@ -117,15 +113,12 @@ public class ChanceManPlugin extends Plugin
                                     .panel(chanceManPanel)
                                     .build();
         clientToolbar.addNavigation(navButton);
-
-        accountManager.init();
     }
 
     @Override
     protected void shutDown() throws Exception
     {
         lifeCycleHub.shutDown();
-        eventBus.unregister(accountManager);
         if (clientToolbar != null && navButton != null)
         {
             clientToolbar.removeNavigation(navButton);

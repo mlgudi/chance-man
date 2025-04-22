@@ -1,4 +1,4 @@
-package com.chanceman.account;
+package com.chanceman.events;
 
 import lombok.Getter;
 

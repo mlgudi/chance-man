@@ -1,7 +1,7 @@
-package com.chanceman.account;
+package com.chanceman;
 
-import com.chanceman.RolledItemsManager;
-import com.chanceman.UnlockedItemsManager;
+import com.chanceman.events.AccountChanged;
+import com.chanceman.lifecycle.implementations.EventUser;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Client;
@@ -10,7 +10,6 @@ import net.runelite.api.Player;
 import net.runelite.api.events.AccountHashChanged;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.GameStateChanged;
-import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 
 import javax.inject.Inject;
@@ -20,7 +19,7 @@ import javax.inject.Singleton;
  * Monitors for account changes and updates the stored display name.
  */
 @Singleton
-public class AccountManager
+public class AccountManager extends EventUser
 {
 
 	@Inject
@@ -32,22 +31,26 @@ public class AccountManager
 	@Inject
 	private RolledItemsManager rolledItemsManager;
 
-	@Inject
-	private EventBus eventBus;
-
 	private long hash = -1;
 	@Getter @Setter private volatile String playerName;
 	private boolean nameSet = false;
 
 	public boolean ready() { return hash != -1 && nameSet; }
 
-	public void init()
+	@Override
+	public void onStartUp()
 	{
 		if (client.getGameState() == GameState.LOGGED_IN && client.getAccountHash() != -1)
 		{
 			hash = client.getAccountHash();
 			nameSet = false;
 		}
+	}
+
+	@Override
+	public void onShutDown()
+	{
+		reset();
 	}
 
 	@Subscribe
@@ -96,6 +99,6 @@ public class AccountManager
 
 	private void emit()
 	{
-		eventBus.post(new AccountChanged(hash, playerName));
+		post(new AccountChanged(hash, playerName));
 	}
 }
