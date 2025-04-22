@@ -1,4 +1,4 @@
-package com.chanceman.lifecycle;
+package com.chanceman.lifecycle.implementations;
 
 import lombok.Getter;
 import lombok.Setter;
@@ -28,7 +28,7 @@ public class EventUser extends LifeCycle
 	 * @param eventBus The RuneLite EventBus instance.
 	 */
 	@Inject
-	private void initEvents(EventBus eventBus)
+	public void initEvents(EventBus eventBus)
 	{
 		if (getEventBus() != null) return;
 		setEventBus(eventBus);
@@ -41,7 +41,7 @@ public class EventUser extends LifeCycle
 	 */
 	public void subscribe()
 	{
-		if (!isSubscriber() || this.subscribed) return;
+		if (getEventBus() == null || !isSubscriber() || this.subscribed) return;
 		getEventBus().register(this);
 		this.subscribed = true;
 	}
@@ -51,7 +51,7 @@ public class EventUser extends LifeCycle
 	 */
 	public void unsubscribe()
 	{
-		if (!this.subscribed) return;
+		if (getEventBus() == null || !this.subscribed) return;
 		getEventBus().unregister(this);
 		this.subscribed = false;
 	}
