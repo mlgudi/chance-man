@@ -11,8 +11,8 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>The LifeCycleHub singleton maintains a registry of objects that implement the {@link ILifeCycle} interface.</p>
  * <p>Upon plugin startUp/shutDown, any currently registered ILifecycles will have their {@link ILifeCycle#startUp()}
  * or {@link ILifeCycle#shutDown()} method called.</p>
- * <p>To ensure proper registration, the implementation's {@link ILifeCycle#init(LifeCycleHub)} method should call
- * {@link LifeCycleHub#register(ILifeCycle)}. This is done can be done using the default {@link ILifeCycle#register()}.</p>
+ * <p>To ensure proper registration, the implementation should call {@link ILifeCycle#init(LifeCycleHub)} from either
+ * the constructor or a method annotated with the @Inject.</p>
  */
 @Slf4j
 @Singleton

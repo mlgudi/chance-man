@@ -19,7 +19,7 @@ public class LifeCycle implements ILifeCycle
 	@Getter @Setter private boolean started = false;
 
 	/**
-	 * <p>The @Inject decorator ensures that this method is called post-construction by Guice.</p>
+	 * <p>The @Inject annotation ensures that this method is called post-construction by Guice.</p>
 	 * <p>Simply calls the default implementation of {@link ILifeCycle#init(LifeCycleHub)}.</p>
 	 * @param lifeCycleHub The LifeCycleHub singleton.
 	 */

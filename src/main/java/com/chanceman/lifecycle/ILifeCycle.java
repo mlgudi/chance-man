@@ -22,9 +22,9 @@ public interface ILifeCycle
 
 	/**
 	 * <p>The init method should be implemented to register the ILifeCycle with the LifeCycleHub singleton.</p>
-	 * <p>It is recommended call this method from a constructor or method decorated with the @Inject decorator
-	 * to ensure it is called post-construction.</p>
-	 * @param lifecycleHub The LifeCycleHub singleton instance.
+	 * <p>It is recommended call this method from a constructor or method annotated with the @Inject to ensure it is
+	 * called post-construction.</p>
+	 * @param lifecycleHub The LifeCycleHub singleton.
 	 */
 	default void init(LifeCycleHub lifecycleHub)
 	{
