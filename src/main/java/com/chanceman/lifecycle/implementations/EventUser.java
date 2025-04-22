@@ -10,7 +10,6 @@ import javax.inject.Inject;
  * <p>A class to be extended by users of the RuneLite EventBus.</p>
  * <p>Extending classes can post events using the {@link #post(Object)} method, and optionally register with
  * the event bus for subscriptions.</p>
- * <p>Set {@link #subscriber} to true to register for event subscriptions with the RuneLite EventBus.</p>
  * <p>EventBus registration/unregistration is handled automatically post-construction and upon plugin
  * startUp/shutDown.</p>
  */
@@ -18,7 +17,6 @@ public class EventUser extends LifeCycle
 {
 
 	@Getter @Setter private EventBus eventBus;
-	@Getter @Setter private boolean subscriber = true;
 	private boolean subscribed = false;
 
 	/**
@@ -32,7 +30,7 @@ public class EventUser extends LifeCycle
 	{
 		if (getEventBus() != null) return;
 		setEventBus(eventBus);
-		if (isSubscriber()) subscribe();
+		subscribe();
 	}
 
 	/**
@@ -41,7 +39,7 @@ public class EventUser extends LifeCycle
 	 */
 	public void subscribe()
 	{
-		if (getEventBus() == null || !isSubscriber() || this.subscribed) return;
+		if (getEventBus() == null || this.subscribed) return;
 		getEventBus().register(this);
 		this.subscribed = true;
 	}
