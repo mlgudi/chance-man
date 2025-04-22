@@ -1,5 +1,7 @@
 package com.chanceman.lifecycle;
 
+import com.chanceman.lifecycle.implementations.LifeCycle;
+
 import java.util.UUID;
 
 /**

@@ -1,5 +1,7 @@
-package com.chanceman.lifecycle;
+package com.chanceman.lifecycle.implementations;
 
+import com.chanceman.lifecycle.ILifeCycle;
+import com.chanceman.lifecycle.LifeCycleHub;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -26,6 +28,7 @@ public class LifeCycle implements ILifeCycle
 	@Inject
 	public void initCycle(LifeCycleHub lifeCycleHub)
 	{
+		if (lifeCycleHub == null) System.err.println("LifeCycleHub is null.");
 		init(lifeCycleHub);
 	}
 }
