@@ -28,7 +28,6 @@ public class LifeCycle implements ILifeCycle
 	@Inject
 	public void initCycle(LifeCycleHub lifeCycleHub)
 	{
-		if (lifeCycleHub == null) System.err.println("LifeCycleHub is null.");
 		init(lifeCycleHub);
 	}
 }
