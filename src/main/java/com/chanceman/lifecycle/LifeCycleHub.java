@@ -1,5 +1,8 @@
 package com.chanceman.lifecycle;
 
+import com.chanceman.events.StartUpComplete;
+import net.runelite.client.eventbus.EventBus;
+
 import javax.inject.Singleton;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -15,7 +18,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class LifeCycleHub
 {
 
+	private final EventBus eventBus;
 	private final Set<ILifeCycle> lifeCycles = ConcurrentHashMap.newKeySet();
+
+	public LifeCycleHub(EventBus eventBus)
+	{
+		this.eventBus = eventBus;
+	}
 
 	/**
 	 * <p>Registers an ILifeCycle with the LifeCycleHub. Upon plugin startUp/shutDown, any currently registered</p>
@@ -53,6 +62,7 @@ public class LifeCycleHub
 			}
 			lifeCycle.startUp();
 		}
+		this.eventBus.post(new StartUpComplete());
 	}
 
 	/**
