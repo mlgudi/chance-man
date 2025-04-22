@@ -1,11 +1,19 @@
 package com.chanceman;
 
+import com.chanceman.events.AccountChanged;
+import com.chanceman.events.ItemListRefreshed;
+import com.chanceman.filters.ItemInfo;
+import com.chanceman.lifecycle.implementations.EventPanel;
 import net.runelite.api.ItemComposition;
+import net.runelite.api.events.GameTick;
 import net.runelite.client.callback.ClientThread;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.LinkBrowser;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.swing.*;
 import javax.swing.border.*;
 import java.awt.*;
@@ -23,14 +31,17 @@ import javax.swing.JColorChooser;
  * and displays each item with its icon and full item name.
  * Each item panel shows a tooltip on both the icon and the panel with the item name.
  */
-public class ChanceManPanel extends PluginPanel
+@Singleton
+public class ChanceManPanel extends EventPanel
 {
     private final UnlockedItemsManager unlockedItemsManager;
     private final RolledItemsManager rolledItemsManager;
     private final ItemManager itemManager;
-    private final HashSet<Integer> allTradeableItems;
+    private final ItemInfo itemInfo;
     private final ClientThread clientThread;
     private final RollAnimationManager rollAnimationManager;
+
+    private boolean initialized = false;
 
     // Caches for item icons and names
     private final Map<Integer, ImageIcon> itemIconCache = new HashMap<>();
@@ -76,15 +87,16 @@ public class ChanceManPanel extends PluginPanel
      * @param unlockedItemsManager Manager for unlocked items.
      * @param rolledItemsManager   Manager for rolled items.
      * @param itemManager          The item manager.
-     * @param allTradeableItems    List of all tradeable item IDs.
+     * @param itemInfo             The ItemInfo instance.
      * @param clientThread         The client thread for scheduling UI updates.
      * @param rollAnimationManager The roll animation manager to trigger animations.
      */
+    @Inject
     public ChanceManPanel(
             UnlockedItemsManager unlockedItemsManager,
             RolledItemsManager rolledItemsManager,
             ItemManager itemManager,
-            HashSet<Integer> allTradeableItems,
+            ItemInfo itemInfo,
             ClientThread clientThread,
             RollAnimationManager rollAnimationManager
     )
@@ -92,10 +104,28 @@ public class ChanceManPanel extends PluginPanel
         this.unlockedItemsManager = unlockedItemsManager;
         this.rolledItemsManager = rolledItemsManager;
         this.itemManager = itemManager;
-        this.allTradeableItems = allTradeableItems;
+        this.itemInfo = itemInfo;
         this.clientThread = clientThread;
         this.rollAnimationManager = rollAnimationManager;
         init();
+    }
+
+    @Subscribe
+    private void onAccountChanged(AccountChanged event)
+    {
+        if (initialized) SwingUtilities.invokeLater(this::updatePanel);
+    }
+
+    @Subscribe
+    private void onItemListRefreshed(ItemListRefreshed event)
+    {
+        if (initialized) SwingUtilities.invokeLater(this::updatePanel);
+    }
+
+    @Subscribe
+    public void onGameTick(GameTick event)
+    {
+        if (initialized) SwingUtilities.invokeLater(this::updatePanel);
     }
 
     /**
@@ -221,6 +251,10 @@ public class ChanceManPanel extends PluginPanel
         // Default to Unlocked view
         showingUnlocked = true;
         ((CardLayout) centerCardPanel.getLayout()).show(centerCardPanel, "UNLOCKED");
+
+        this.initialized = true;
+
+        // Initial update
         updatePanel();
     }
 
@@ -419,7 +453,7 @@ public class ChanceManPanel extends PluginPanel
             return;
         }
         List<Integer> locked = new ArrayList<>();
-        for (int id : allTradeableItems)
+        for (int id : itemInfo.getAllTradeableItems())
         {
             if (!unlockedItemsManager.isUnlocked(id))
             {
@@ -447,6 +481,7 @@ public class ChanceManPanel extends PluginPanel
      */
     public void updatePanel()
     {
+        if (!initialized) return;
         clientThread.invokeLater(() ->
         {
             // Build filtered lists
@@ -494,7 +529,7 @@ public class ChanceManPanel extends PluginPanel
                 filteredRolled.removeIf(id -> !unlockedItemsManager.getUnlockedItems().contains(id));
             }
 
-            int totalTrackable = allTradeableItems.size();
+            int totalTrackable = itemInfo.getAllTradeableItems().size();
             int rolledCount = rolledItemsManager.getRolledItems().size();
             int unlockedCount = unlockedItemsManager.getUnlockedItems().size();
 

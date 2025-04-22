@@ -12,6 +12,10 @@ import javax.inject.Inject;
  * <p>Post-construction logic can be added by overriding the {@link ILifeCycle#onInit()} hook.</p>
  * <p>Plugin startUp/shutDown logic can be added by overriding the {@link ILifeCycle#onStartUp()} and
  * {@link ILifeCycle#onShutDown()} hooks.</p>
+ * <p><strong>Note:</strong></p>
+ * <p>Classes extending LifeCycle should not use @Inject-annotated fields if those fields are referenced in the
+ * onInit() or onStartUp() methods.</p>
+ * <p>Instead, <strong>use an @Inject-annotated constructor</strong>.</p>
  */
 public class LifeCycle implements ILifeCycle
 {

@@ -1,7 +1,7 @@
 package com.chanceman.menus;
 
-import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
+import com.chanceman.filters.ItemInfo;
 import com.chanceman.lifecycle.implementations.EventUser;
 import lombok.Getter;
 import lombok.Setter;
@@ -45,22 +45,25 @@ public class ActionHandler extends EventUser
 	}};
 
 	private final Client client;
-	private final ChanceManPlugin plugin;
 	private final Restrictions restrictions;
 	private final UnlockedItemsManager unlockedItemsManager;
+	private final ItemManager itemManager;
+	private final ItemInfo itemInfo;
 	@Getter @Setter private int enabledUIOpen = -1;
 
 	@Inject
 	public ActionHandler(
 			Client client,
-			ChanceManPlugin plugin,
 			Restrictions restrictions,
-			UnlockedItemsManager unlockedItemsManager
+			UnlockedItemsManager unlockedItemsManager,
+			ItemManager itemManager,
+			ItemInfo itemInfo
 	) {
 		this.client = client;
-		this.plugin = plugin;
 		this.restrictions = restrictions;
 		this.unlockedItemsManager = unlockedItemsManager;
+		this.itemManager = itemManager;
+		this.itemInfo = itemInfo;
 	}
 
 	// A no-op click handler that marks a menu entry as disabled.
@@ -119,7 +122,7 @@ public class ActionHandler extends EventUser
 			return;
 		}
 		// Extra safeguard for ground items.
-		handleGroundItems(plugin.getItemManager(), unlockedItemsManager, event, plugin);
+		handleGroundItems(itemManager, itemInfo, unlockedItemsManager, event);
 	}
 
 	/**
@@ -130,7 +133,7 @@ public class ActionHandler extends EventUser
 		int raw = GROUND_ACTIONS.contains(entry.getType())
 				? event.getIdentifier()
 				: Math.max(event.getItemId(), entry.getItemId());
-		return plugin.getItemManager().canonicalize(raw);
+		return itemManager.canonicalize(raw);
 	}
 
 	/**
@@ -151,8 +154,8 @@ public class ActionHandler extends EventUser
 	 */
 	private boolean isLockedGroundItem(int itemId)
 	{
-		return plugin.isTradeable(itemId)
-				&& !plugin.isNotTracked(itemId)
+		return itemInfo.isTradeable(itemId)
+				&& !ItemInfo.isNotTracked(itemId)
 				&& !unlockedItemsManager.isUnlocked(itemId);
 	}
 
@@ -169,7 +172,7 @@ public class ActionHandler extends EventUser
 			return true;
 		if (option.equalsIgnoreCase("clean") || option.equalsIgnoreCase("rub"))
 		{
-			if (!plugin.isInPlay(id)) { return true; }
+			if (!itemInfo.isInPlay(id)) { return true; }
 			return unlockedItemsManager.isUnlocked(id);
 		}
 		if (SkillOp.isSkillOp(option))
@@ -186,7 +189,7 @@ public class ActionHandler extends EventUser
 		}
 		if (enabled)
 			return true;
-		if (id == 0 || id == -1 || !plugin.isInPlay(id))
+		if (id == 0 || id == -1 || !itemInfo.isInPlay(id))
 			return true;
 		return unlockedItemsManager.isUnlocked(id);
 	}
@@ -195,8 +198,8 @@ public class ActionHandler extends EventUser
 	 * A static helper to further safeguard ground item actions.
 	 * If a ground item is locked, this method consumes the event.
 	 */
-	public static void handleGroundItems(ItemManager itemManager, UnlockedItemsManager unlockedItemsManager,
-										 MenuOptionClicked event, ChanceManPlugin plugin) {
+	public static void handleGroundItems(ItemManager itemManager, ItemInfo itemInfo,
+										 UnlockedItemsManager unlockedItemsManager, MenuOptionClicked event) {
 		String option = event.getMenuEntry().getOption().toLowerCase();
 		if (event.getMenuAction() != null &&
 				(event.getMenuAction().toString().contains("GROUND_ITEM")
@@ -205,8 +208,8 @@ public class ActionHandler extends EventUser
 						|| option.contains("pickup"))) {
 			int rawItemId = event.getId() != -1 ? event.getId() : event.getMenuEntry().getItemId();
 			int canonicalGroundId = itemManager.canonicalize(rawItemId);
-			if (plugin.isTradeable(canonicalGroundId)
-					&& !plugin.isNotTracked(canonicalGroundId)
+			if (itemInfo.isTradeable(canonicalGroundId)
+					&& !ItemInfo.isNotTracked(canonicalGroundId)
 					&& unlockedItemsManager != null
 					&& !unlockedItemsManager.isUnlocked(canonicalGroundId)) {
 				event.consume();

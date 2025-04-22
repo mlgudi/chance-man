@@ -3,6 +3,7 @@ package com.chanceman.lifecycle;
 import com.chanceman.events.StartUpComplete;
 import net.runelite.client.eventbus.EventBus;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -21,6 +22,7 @@ public class LifeCycleHub
 	private final EventBus eventBus;
 	private final Set<ILifeCycle> lifeCycles = ConcurrentHashMap.newKeySet();
 
+	@Inject
 	public LifeCycleHub(EventBus eventBus)
 	{
 		this.eventBus = eventBus;

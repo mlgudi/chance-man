@@ -1,14 +1,11 @@
 package com.chanceman;
 
-
-import com.chanceman.events.AccountChanged;
 import com.chanceman.filters.EnsouledHeadMapping;
 import com.chanceman.lifecycle.LifeCycleHub;
 import com.chanceman.menus.ActionHandler;
-import com.chanceman.filters.ItemsFilter;
+import com.chanceman.filters.ItemInfo;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
-import lombok.Getter;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
 import net.runelite.api.widgets.Widget;
@@ -24,7 +21,7 @@ import net.runelite.client.util.ImageUtil;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.config.ConfigManager;
 import javax.inject.Inject;
-import javax.swing.*;
+import javax.inject.Provider;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
@@ -37,6 +34,11 @@ import java.util.concurrent.Executors;
 )
 public class ChanceManPlugin extends Plugin
 {
+
+    private static final BufferedImage NAV_BUTTON_ICON = ImageUtil.loadImageResource(
+            ChanceManPlugin.class, "/net/runelite/client/plugins/chanceman/icon.png"
+    );
+
     @Inject
     private LifeCycleHub lifeCycleHub;
     @Inject
@@ -68,14 +70,16 @@ public class ChanceManPlugin extends Plugin
     @Inject
     private RollAnimationManager rollAnimationManager;
     @Inject
-    private ItemsFilter itemsFilter;
+    private ItemInfo itemInfo;
+    @Inject
+    private ActionHandler actionHandler;
+    @Inject
+    private Provider<ChanceManPanel> panelProvider;
 
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
     private ExecutorService fileExecutor;
-    @Getter private final HashSet<Integer> allTradeableItems = new LinkedHashSet<>();
     private static final int GE_SEARCH_BUILD_SCRIPT = 751;
-    private boolean tradeableItemsInitialized = false;
 
     @Provides
     ChanceManConfig provideConfig(ConfigManager configManager)
@@ -87,7 +91,6 @@ public class ChanceManPlugin extends Plugin
     protected void startUp() throws Exception
     {
         lifeCycleHub.startUp();
-        getInjector().getInstance(ActionHandler.class);
 
         overlayManager.add(chanceManOverlay);
         fileExecutor = Executors.newSingleThreadExecutor();
@@ -99,15 +102,10 @@ public class ChanceManPlugin extends Plugin
             return;
         }
 
-        chanceManPanel = new ChanceManPanel(
-                unlockedItemsManager, rolledItemsManager, itemManager, allTradeableItems, clientThread,
-                rollAnimationManager
-        );
-        BufferedImage icon = ImageUtil.loadImageResource(
-                getClass(), "/net/runelite/client/plugins/chanceman/icon.png");
+        chanceManPanel = panelProvider.get();
         navButton = NavigationButton.builder()
                                     .tooltip("ChanceMan")
-                                    .icon(icon)
+                                    .icon(NAV_BUTTON_ICON)
                                     .priority(5)
                                     .panel(chanceManPanel)
                                     .build();
@@ -132,77 +130,9 @@ public class ChanceManPlugin extends Plugin
         }
 
         // Reset plugin state for a fresh initialization on restart.
-        chanceManPanel = null;
         navButton = null;
+        chanceManPanel = null;
         fileExecutor = null;
-        allTradeableItems.clear();
-        tradeableItemsInitialized = false;
-        accountManager.reset();
-    }
-
-    /**
-     * Refreshes the list of tradeable item IDs based on the current configuration.
-     */
-    public void refreshTradeableItems() {
-        clientThread.invokeLater(() -> {
-            allTradeableItems.clear();
-            for (int i = 0; i < 40000; i++) {
-                ItemComposition comp = itemManager.getItemComposition(i);
-                if (comp != null && comp.isTradeable() && !isNotTracked(i)
-                        && !ItemsFilter.isBlocked(i, config.enableFlatpacks(), config.enableItemSets())) {
-                    if (config.freeToPlay() && comp.isMembers()) {
-                        continue;
-                    }
-                    if (!ItemsFilter.isPoisonEligible(i, config.requireWeaponPoison(),
-                            unlockedItemsManager.getUnlockedItems())) {
-                        continue;
-                    }
-                    allTradeableItems.add(i);
-                }
-            }
-            rollAnimationManager.setAllTradeableItems(allTradeableItems);
-            if (chanceManPanel != null) {
-                SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
-            }
-        });
-    }
-
-
-    @Subscribe
-    public void onConfigChanged(net.runelite.client.events.ConfigChanged event)
-    {
-        if (!event.getGroup().equals("chanceman")) { return; }
-        if (event.getKey().equals("freeToPlay")) { refreshTradeableItems(); }
-        if (event.getKey().equals("enableFlatpacks")) { refreshTradeableItems(); }
-        if (event.getKey().equals("enableItemSets")) { refreshTradeableItems(); }
-        if (event.getKey().equals("requireWeaponPoison")) { refreshTradeableItems(); }
-    }
-
-    @Subscribe
-    private void onAccountChanged(AccountChanged event)
-    {
-        unlockedItemsManager.loadUnlockedItems();
-        rolledItemsManager.loadRolledItems();
-        if (chanceManPanel != null)
-        {
-            SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
-        }
-    }
-
-    @Subscribe
-    public void onGameTick(GameTick event)
-    {
-        if (!tradeableItemsInitialized && client.getGameState() == GameState.LOGGED_IN)
-        {
-            refreshTradeableItems();
-            tradeableItemsInitialized = true;
-        }
-
-        rollAnimationManager.process();
-        if (chanceManPanel != null)
-        {
-            SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
-        }
     }
 
     @Subscribe
@@ -242,11 +172,11 @@ public class ChanceManPlugin extends Plugin
         ItemComposition comp = itemManager.getItemComposition(itemId);
         String name = (comp != null && comp.getName() != null) ? comp.getName() : tileItem.toString();
         if (name.toLowerCase().contains("ensouled")) {
-            int mappedId = ItemsFilter.getEnsouledHeadId(name);
+            int mappedId = ItemInfo.getEnsouledHeadId(name);
             if (mappedId != EnsouledHeadMapping.DEFAULT_ENSOULED_HEAD_ID) { itemId = mappedId; }
         }
         int canonicalItemId = itemManager.canonicalize(itemId);
-        if (!isTradeable(canonicalItemId) || isNotTracked(canonicalItemId))
+        if (!itemInfo.isTradeable(canonicalItemId) || ItemInfo.isNotTracked(canonicalItemId))
         {
             return;
         }
@@ -278,7 +208,7 @@ public class ChanceManPlugin extends Plugin
             {
                 int rawItemId = item.getId();
                 int canonicalId = itemManager.canonicalize(rawItemId);
-                if (!isTradeable(canonicalId) || isNotTracked(canonicalId))
+                if (!itemInfo.isTradeable(canonicalId) || ItemInfo.isNotTracked(canonicalId))
                 {
                     continue;
                 }
@@ -302,24 +232,5 @@ public class ChanceManPlugin extends Plugin
                 || worldTypes.contains(WorldType.QUEST_SPEEDRUNNING)
                 || worldTypes.contains(WorldType.TOURNAMENT_WORLD));
     }
-
-    public boolean isTradeable(int itemId)
-    {
-        ItemComposition comp = itemManager.getItemComposition(itemId);
-        return comp != null && comp.isTradeable();
-    }
-
-    public boolean isNotTracked(int itemId)
-    {
-        return itemId == 995 || itemId == 13191 || itemId == 13190 ||
-                itemId == 7587 || itemId == 7588 || itemId == 7589 || itemId == 7590 || itemId == 7591;
-    }
-
-    public boolean isInPlay(int itemId)
-    {
-        return allTradeableItems.contains(itemId);
-    }
-
-    public ItemManager getItemManager() { return itemManager; }
 
 }

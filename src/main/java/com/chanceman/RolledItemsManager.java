@@ -1,8 +1,11 @@
 package com.chanceman;
 
+import com.chanceman.events.AccountChanged;
+import com.chanceman.lifecycle.implementations.EventUser;
 import com.google.gson.Gson;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.client.eventbus.Subscribe;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -23,14 +26,31 @@ import static net.runelite.client.RuneLite.RUNELITE_DIR;
  */
 @Slf4j
 @Singleton
-public class RolledItemsManager
+public class RolledItemsManager extends EventUser
 {
     private static final int MAX_BACKUPS = 10;
     private final Set<Integer> rolledItems = Collections.synchronizedSet(new LinkedHashSet<>());
 
-    @Inject private AccountManager accountManager;
-    @Inject private Gson gson;
+    private final AccountManager accountManager;
+    private final Gson gson;
     @Setter private ExecutorService executor;
+
+
+    @Inject
+    public RolledItemsManager(AccountManager accountManager, Gson gson)
+    {
+        this.accountManager = accountManager;
+        this.gson = gson;
+    }
+
+    @Subscribe
+    private void onAccountChanged(AccountChanged event)
+    {
+        if (event.isLoggedIn())
+        {
+            loadRolledItems();
+        }
+    }
 
     /**
      * Atomically moves source→target, but if ATOMIC_MOVE fails retries a normal move with REPLACE_EXISTING.

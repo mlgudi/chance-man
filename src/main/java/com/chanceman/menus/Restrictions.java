@@ -2,6 +2,7 @@ package com.chanceman.menus;
 
 import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
+import com.chanceman.filters.ItemInfo;
 import com.chanceman.lifecycle.implementations.EventUser;
 import net.runelite.api.Client;
 import net.runelite.api.coords.WorldArea;
@@ -62,21 +63,21 @@ public class Restrictions extends EventUser
 		}
 	}
 
-	private final ChanceManPlugin plugin;
 	private final Client client;
 	private final UnlockedItemsManager unlockedItemsManager;
+	private final ItemInfo itemInfo;
 	private final HashSet<SkillOp> enabledSkillOps = new HashSet<>();
 	private final HashSet<Integer> availableRunes = new HashSet<>();
 
 	@Inject
 	public Restrictions(
-			ChanceManPlugin plugin,
 			Client client,
-			UnlockedItemsManager unlockedItemsManager
+			UnlockedItemsManager unlockedItemsManager,
+			ItemInfo itemInfo
 	) {
-		this.plugin = plugin;
 		this.client = client;
 		this.unlockedItemsManager = unlockedItemsManager;
+		this.itemInfo = itemInfo;
 	}
 
 	@Subscribe
@@ -93,7 +94,7 @@ public class Restrictions extends EventUser
 		{
 			Arrays.stream(equippedItems.getItems()).forEach(item -> {
 				int id = item.getId();
-				if (!plugin.isInPlay(id) || !unlockedItemsManager.isUnlocked(id)) return;
+				if (!itemInfo.isInPlay(id) || !unlockedItemsManager.isUnlocked(id)) return;
 				if (RuneProvider.isEquppedProvider(id)) availableRunes.addAll(RuneProvider.getProvidedRunes(id));
 				if (SkillItem.isSkillItem(id)) enabledSkillOps.add(ITEM_TO_OP.get(id));
 			});
@@ -103,7 +104,7 @@ public class Restrictions extends EventUser
 		{
 			Arrays.stream(inventoryItems.getItems()).forEach(item -> {
 				int id = item.getId();
-				if (!plugin.isInPlay(id) || !unlockedItemsManager.isUnlocked(id)) return;
+				if (!itemInfo.isInPlay(id) || !unlockedItemsManager.isUnlocked(id)) return;
 				if (RuneProvider.isInvProvider(id)) availableRunes.addAll(RuneProvider.getProvidedRunes(id));
 				if (SkillItem.isSkillItem(id)) enabledSkillOps.add(ITEM_TO_OP.get(id));
 			});
@@ -120,7 +121,7 @@ public class Restrictions extends EventUser
 			}
 
 			int runeId = pouchEnum.getIntValue(typeIdx);
-			if (!plugin.isInPlay(runeId) || !unlockedItemsManager.isUnlocked(runeId))
+			if (!itemInfo.isInPlay(runeId) || !unlockedItemsManager.isUnlocked(runeId))
 			{
 				continue;
 			}
@@ -160,7 +161,7 @@ public class Restrictions extends EventUser
 			int id = child.getItemId();
 			if (id == -1) continue;
 
-			if (plugin.isInPlay(id) && !availableRunes.contains(id))
+			if (itemInfo.isInPlay(id) && !availableRunes.contains(id))
 				return false;
 		}
 		return true;

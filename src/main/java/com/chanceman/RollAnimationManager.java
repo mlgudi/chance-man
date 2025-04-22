@@ -1,12 +1,16 @@
 package com.chanceman;
 
+import com.chanceman.filters.ItemInfo;
+import com.chanceman.lifecycle.implementations.EventUser;
 import com.chanceman.lifecycle.implementations.LifeCycle;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
+import net.runelite.api.events.GameTick;
 import net.runelite.client.chat.ChatMessageManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.callback.ClientThread;
 
@@ -22,16 +26,16 @@ import java.util.concurrent.Executors;
  * It processes roll requests asynchronously and handles the roll animation through the overlay.
  */
 @Singleton
-public class RollAnimationManager extends LifeCycle
+public class RollAnimationManager extends EventUser
 {
-    private final ItemManager itemManager;
     private final Client client;
+    private final ItemManager itemManager;
+    private final ItemInfo itemInfo;
     private final ChatMessageManager chatMessageManager;
     private final ClientThread clientThread;
     private final UnlockedItemsManager unlockedManager;
     private final ChanceManOverlay overlay;
 
-    @Setter private HashSet<Integer> allTradeableItems;
     private final Queue<Integer> rollQueue = new ConcurrentLinkedQueue<>();
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isRolling = false;
@@ -43,11 +47,14 @@ public class RollAnimationManager extends LifeCycle
     @Setter
     private volatile boolean manualRoll = false;
 
-    public RollAnimationManager(Client client, ItemManager itemManager, ChatMessageManager chatMessageManager,
-                                ClientThread clientThread, UnlockedItemsManager unlockedManager, ChanceManOverlay overlay)
+    @Inject
+    public RollAnimationManager(Client client, ItemManager itemManager, ItemInfo itemInfo,
+                                ChatMessageManager chatMessageManager, ClientThread clientThread,
+                                UnlockedItemsManager unlockedManager, ChanceManOverlay overlay)
     {
         this.client = client;
         this.itemManager = itemManager;
+        this.itemInfo = itemInfo;
         this.chatMessageManager = chatMessageManager;
         this.clientThread = clientThread;
         this.unlockedManager = unlockedManager;
@@ -68,6 +75,12 @@ public class RollAnimationManager extends LifeCycle
     public void onShutDown()
     {
         executor.shutdownNow();
+    }
+
+    @Subscribe
+    public void onGameTick(GameTick event)
+    {
+        process();
     }
 
     /**
@@ -142,7 +155,7 @@ public class RollAnimationManager extends LifeCycle
     public int getRandomLockedItem()
     {
         List<Integer> locked = new ArrayList<>();
-        for (int id : allTradeableItems)
+        for (int id : itemInfo.getAllTradeableItems())
         {
             if (!unlockedManager.isUnlocked(id))
             {

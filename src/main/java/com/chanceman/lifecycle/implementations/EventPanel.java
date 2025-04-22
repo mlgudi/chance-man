@@ -1,27 +1,45 @@
 package com.chanceman.lifecycle.implementations;
 
+import com.chanceman.lifecycle.ILifeCycle;
+import com.chanceman.lifecycle.LifeCycleHub;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.ui.PluginPanel;
 
 import javax.inject.Inject;
+import java.util.UUID;
 
 /**
- * <p>A class to be extended by users of the RuneLite EventBus.</p>
- * <p>Extending classes can post events using the {@link #post(Object)} method, and optionally register with
- * the event bus for subscriptions.</p>
- * <p>EventBus registration/unregistration is handled automatically post-construction and upon plugin
- * startUp/shutDown.</p>
+ * <p>A base implementation of ILifeCycle extending PluginPanel, with support for event posting/subscriptions.</p>
+ * <p>Post-construction logic can be added by overriding the {@link ILifeCycle#onInit()} hook.</p>
+ * <p>Plugin startUp/shutDown logic can be added by overriding the {@link ILifeCycle#onStartUp()} and
+ * {@link ILifeCycle#onShutDown()} hooks.</p>
  * <p><strong>Note:</strong></p>
- * <p>Classes extending EventUser should not use @Inject-annotated fields if those fields are referenced in the
+ * <p>Classes extending EventPanel should not use @Inject-annotated fields if those fields are referenced in the
  * onInit() or onStartUp() methods.</p>
  * <p>Instead, <strong>use an @Inject-annotated constructor</strong>.</p>
  */
-public class EventUser extends LifeCycle
+public class EventPanel extends PluginPanel implements ILifeCycle
 {
+
+	@Getter private final UUID uuid = UUID.randomUUID();
+	@Getter @Setter private LifeCycleHub lifeCycleHub;
+	@Getter @Setter private boolean started = false;
 
 	@Getter @Setter private EventBus eventBus;
 	private boolean subscribed = false;
+
+	/**
+	 * <p>The @Inject annotation ensures that this method is called post-construction by Guice.</p>
+	 * <p>Simply calls the default implementation of {@link ILifeCycle#init(LifeCycleHub)}.</p>
+	 * @param lifeCycleHub The LifeCycleHub singleton.
+	 */
+	@Inject
+	public void initCycle(LifeCycleHub lifeCycleHub)
+	{
+		init(lifeCycleHub);
+	}
 
 	/**
 	 * <p>Automatically called by Guice post-construction.</p>
@@ -61,14 +79,14 @@ public class EventUser extends LifeCycle
 	@Override
 	public void onStartUp()
 	{
-		super.onStartUp();
+		ILifeCycle.super.onStartUp();
 		subscribe();
 	}
 
 	@Override
 	public void onShutDown()
 	{
-		super.onShutDown();
+		ILifeCycle.super.onShutDown();
 		unsubscribe();
 	}
 
