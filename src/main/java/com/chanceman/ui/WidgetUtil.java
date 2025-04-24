@@ -6,11 +6,17 @@ import net.runelite.api.widgets.Widget;
 import java.util.function.Consumer;
 
 /**
- * Helpers for widget-related functionality, primarily removing the need for null-checks everywhere.
+ * Helpers for widget-related functionality, primarily removing the need for null checks everywhere.
  */
 public class WidgetUtil
 {
 
+	/**
+	 * Returns the Widget children of the given type
+	 * @param widget The parent Widget
+	 * @param childType The child type
+	 * @return The Widget children
+	 */
 	private static Widget[] getChildren(Widget widget, ChildType childType)
 	{
 		Widget[] children = null;
@@ -33,10 +39,10 @@ public class WidgetUtil
 	}
 
 	/**
-	 * Performs a null-check and, if non-null, applies a consumer to the widget
+	 * Invokes the consumer only if the target Widget is non-null
 	 * @param client The client
-	 * @param componentId The widget component ID
-	 * @param consumer The widget consumer
+	 * @param componentId The Widget component ID
+	 * @param consumer The consumer to be invoked
 	 */
 	public static void apply(Client client, int componentId, Consumer<Widget> consumer)
 	{
@@ -46,11 +52,11 @@ public class WidgetUtil
 	}
 
 	/**
-	 * Performs a null-check and, if non-null, applies a consumer to the widget
+	 * Invokes the consumer only if the target Widget is non-null
 	 * @param client The client
-	 * @param groupId The widget group ID
-	 * @param childId The widget child ID
-	 * @param consumer The widget consumer
+	 * @param groupId The Widget group ID
+	 * @param childId The Widget child ID
+	 * @param consumer The consumer to be invoked
 	 */
 	public static void apply(Client client, int groupId, int childId, Consumer<Widget> consumer)
 	{
@@ -60,11 +66,11 @@ public class WidgetUtil
 	}
 
 	/**
-	 * Performs null-checks and, if non-null, applies a consumer to the child widget of the given index
+	 * Invokes the consumer only if the child Widget at the given index is non-null
 	 * @param client The client
-	 * @param componentId The widget group ID
+	 * @param componentId The Widget component ID
 	 * @param childIndex The index of the target child widget
-	 * @param consumer The widget consumer
+	 * @param consumer The consumer to be invoked
 	 */
 	public static void applyToChild(Client client, int componentId, int childIndex, Consumer<Widget> consumer)
 	{
@@ -78,12 +84,12 @@ public class WidgetUtil
 	}
 
 	/**
-	 * Performs null-checks and, if non-null, applies a consumer to the child widget of the given index
+	 * Invokes the consumer only if the child Widget at the given index is non-null
 	 * @param client The client
-	 * @param groupId The widget group ID
-	 * @param childId The widget child ID
-	 * @param childIndex The index of the target child widget
-	 * @param consumer The widget consumer
+	 * @param groupId The Widget group ID
+	 * @param childId The Widget child ID
+	 * @param childIndex The index of the target child Widget
+	 * @param consumer The consumer to be invoked
 	 */
 	public static void applyToChild(Client client, int groupId, int childId, int childIndex, Consumer<Widget> consumer)
 	{
@@ -96,6 +102,12 @@ public class WidgetUtil
 		consumer.accept(child);
 	}
 
+	/**
+	 * Invokes the consumer for any non-null children
+	 * @param client The client
+	 * @param componentId The Widget component ID
+	 * @param consumer The consumer to be invoked
+	 */
 	public static void applyToAllChildren(Client client, int componentId, Consumer<Widget> consumer)
 	{
 		Widget widget = client.getWidget(componentId);
@@ -111,6 +123,13 @@ public class WidgetUtil
 		}
 	}
 
+	/**
+	 * Invokes the consumer for non-null children of the given type
+	 * @param client The client
+	 * @param componentId The widget component ID
+	 * @param type The child type
+	 * @param consumer The consumer to be invoked
+	 */
 	public static void applyToAllChildren(Client client, int componentId, ChildType type, Consumer<Widget> consumer)
 	{
 		Widget widget = client.getWidget(componentId);
@@ -124,6 +143,14 @@ public class WidgetUtil
 		}
 	}
 
+	/**
+	 * Invokes the consumer for non-null children of the given type
+	 * @param client The client
+	 * @param groupId The Widget group ID
+	 * @param childId The Widget child ID
+	 * @param type The child type
+	 * @param consumer The consumer to be invoked
+	 */
 	public static void applyToAllChildren(Client client, int groupId, int childId, ChildType type,
 										  Consumer<Widget> consumer)
 	{
