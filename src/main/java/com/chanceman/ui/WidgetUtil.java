@@ -40,6 +40,16 @@ public class WidgetUtil
 
 	/**
 	 * Invokes the consumer only if the target Widget is non-null
+	 * @param widget The Widget
+	 * @param consumer The consumer to be invoked
+	 */
+	public static void apply(Widget widget, Consumer<Widget> consumer)
+	{
+		if (widget != null) consumer.accept(widget);
+	}
+
+	/**
+	 * Invokes the consumer only if the target Widget is non-null
 	 * @param client The client
 	 * @param componentId The Widget component ID
 	 * @param consumer The consumer to be invoked
@@ -63,6 +73,22 @@ public class WidgetUtil
 		Widget widget = client.getWidget(groupId, childId);
 		if (widget == null) return;
 		consumer.accept(widget);
+	}
+
+	/**
+	 * Invokes the consumer only if the child Widget at the given index is non-null
+	 * @param widget The Widget
+	 * @param childIndex The index of the target child widget
+	 * @param consumer The consumer to be invoked
+	 */
+	public static void applyToChild(Widget widget, int componentId, int childIndex, Consumer<Widget> consumer)
+	{
+		if (widget == null) return;
+
+		Widget child = widget.getChild(childIndex);
+		if (child == null) return;
+
+		consumer.accept(child);
 	}
 
 	/**
@@ -100,6 +126,26 @@ public class WidgetUtil
 		if (child == null) return;
 
 		consumer.accept(child);
+	}
+
+	/**
+	 * Invokes the consumer for any non-null children
+	 * @param widget The Widget
+	 * @param componentId The Widget component ID
+	 * @param consumer The consumer to be invoked
+	 */
+	public static void applyToAllChildren(Widget widget, int componentId, Consumer<Widget> consumer)
+	{
+		if (widget == null) return;
+
+		Widget[] children = widget.getChildren();
+		if (children == null) return;
+
+		for (Widget child : children)
+		{
+			if (child == null) continue;
+			consumer.accept(child);
+		}
 	}
 
 	/**
