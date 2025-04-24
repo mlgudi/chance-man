@@ -184,6 +184,7 @@ public class CLog {
 	private void reset()
 	{
 		WidgetUtil.apply(client, CLOG_HEADER_COMP_ID, Widget::deleteAllChildren);
+		showRolled = false;
 		unlocked.clear();
 		rolled.clear();
 		itemWidgets.clear();
@@ -320,8 +321,7 @@ public class CLog {
 	{
 		String progressText = String.format(
 				"<col=0dc10d>%s/%s</col>",
-				showRolled ? rolledItemsManager.getRollCount() : unlockedItemsManager.getUnlockCount(),
-				allTradeableItems.size()
+				unlockedItemsManager.getUnlockCount(), allTradeableItems.size()
 		);
 		WidgetUtil.applyToChild(summary, SUMMARY_CHILD_INDEX, w -> {
 			if (w.getText().equals(lastProgressText)) return;
@@ -334,21 +334,18 @@ public class CLog {
 	 * Replaces the text of widgets within the CLog header
 	 */
 	private void replaceHeaderContent(Widget header) {
-		WidgetUtil.applyToChild(header, 0, w -> { w.setText("Chance Man"); });
-		Widget[] headerComponents = WidgetUtil.getChildren(header, ChildType.DYNAMIC);
-		if (headerComponents.length < 2) return;
-
-		if (headerComponents[0] != null) {
-			headerComponents[0].setText("Chance Man");
-		}
-		if (headerComponents[1] != null) {
-			String progressText = String.format("<col=0dc10d>%s/%s</col>",
-												unlockedItemsManager.getUnlockCount(), allTradeableItems.size());
-			headerComponents[1].setText(progressText);
-		}
-		if (headerComponents.length > 2 && headerComponents[2] != null) {
-			headerComponents[2].setText("");
-		}
+		WidgetUtil.applyToChild(header, 0, w -> w.setText("Chance Man"));
+		WidgetUtil.applyToChild(header, 1, w -> w.setText(showRolled ? "Rolled" : "Unlocked"));
+		WidgetUtil.applyToChild(header, 2, w -> {
+			w.setOriginalWidth(150);
+			w.revalidate();
+			String progressText = String.format(
+					"<col=0dc10d>%s/%s</col>",
+					showRolled ? rolledItemsManager.getRollCount() : unlockedItemsManager.getUnlockCount(),
+					allTradeableItems.size()
+			);
+			w.setText(progressText);
+		});
 	}
 
 	/**
@@ -420,6 +417,7 @@ public class CLog {
 		clientThread.invokeLater(() -> {
 			client.playSoundEffect(SoundEffectID.UI_BOOP);
 			swapItems();
+			WidgetUtil.apply(client, CLOG_HEADER_COMP_ID, this::replaceHeaderContent);
 		});
 	}
 
