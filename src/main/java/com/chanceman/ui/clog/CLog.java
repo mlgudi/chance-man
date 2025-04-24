@@ -3,6 +3,8 @@ package com.chanceman.ui.clog;
 import com.chanceman.RolledItemsManager;
 import com.chanceman.UnlockedItemsManager;
 import com.chanceman.account.AccountChanged;
+import com.chanceman.ui.ChildType;
+import com.chanceman.ui.WidgetUtil;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.*;
@@ -92,13 +94,6 @@ public class CLog {
 	private final List<CLogEntry> unlockedEntries = new ArrayList<>();
 	private final List<CLogEntry> rolledEntries = new ArrayList<>();
 
-	private Widget itemHeader;
-	private Widget itemContainer;
-	private Widget charSummary;
-	private boolean headerPresent = false;
-	private boolean containerPresent = false;
-	private boolean summaryPresent = false;
-
 	private Widget searchButton;
 	private final List<Widget> itemWidgets = new ArrayList<>();
 
@@ -129,7 +124,6 @@ public class CLog {
 	}
 
 	// Helper methods
-
 	/**
 	 * @return True if the CLog UI is ready to be overridden once opened
 	 */
@@ -141,19 +135,6 @@ public class CLog {
 	private boolean isAvailable(int itemId)
 	{
 		return showRolled ? unlockedItemsManager.isUnlocked(itemId) : rolledItemsManager.isRolled(itemId);
-	}
-
-	/**
-	 * Updates the fields for core widgets (widgets that are targeted for modification)
-	 */
-	private void updateCoreWidgets()
-	{
-		itemHeader = client.getWidget(CLOG_HEADER_COMP_ID);
-		itemContainer = client.getWidget(ITEM_CONTAINER_COMP_ID);
-		charSummary = client.getWidget(SUMMARY_COMP_ID);
-		headerPresent = itemHeader != null;
-		containerPresent = itemContainer != null;
-		summaryPresent = charSummary != null;
 	}
 
 	/**
@@ -202,9 +183,7 @@ public class CLog {
 	 */
 	private void reset()
 	{
-		if (itemHeader != null) { itemHeader.deleteAllChildren(); }
-		headerPresent = false;
-		containerPresent = false;
+		WidgetUtil.apply(client, CLOG_HEADER_COMP_ID, Widget::deleteAllChildren);
 		unlocked.clear();
 		rolled.clear();
 		itemWidgets.clear();
@@ -224,31 +203,30 @@ public class CLog {
 	}
 
 	/**
-	 * Main method to override the CLog content
+	 * Called to override the CLog UI content
 	 */
 	private void override()
 	{
 		update();
-		updateCoreWidgets();
-		if (headerPresent)
-		{
-			Widget button = client.getWidget(CA_BUTTON_COMP_ID);
-			if (button != null) button.setHidden(true);
-			replaceHeaderContent();
-			createSwapButton();
-			createSearchButton();
-		}
-		if (containerPresent)
-		{
-			createWidgets();
-			updateWidgets("");
-		}
+		updateHeader();
+		createWidgets();
+		updateWidgets("");
+	}
+
+	private void updateHeader()
+	{
+		WidgetUtil.apply(client, CA_BUTTON_COMP_ID, w -> w.setHidden(true));
+		WidgetUtil.apply(client, CLOG_HEADER_COMP_ID, w -> {
+			replaceHeaderContent(w);
+			createSwapButton(w);
+			createSearchButton(w);
+		});
 	}
 
 	/**
 	 * Creates a child widget to display items within the itemContainer, positioned according to its index.
 	 */
-	private void createWidget()
+	private void createWidget(Widget itemContainer)
 	{
 		Widget widget = itemContainer.createChild(WidgetType.GRAPHIC);
 		int index = widget.getIndex();
@@ -296,13 +274,14 @@ public class CLog {
 	 */
 	private void createWidgets()
 	{
-		if (!containerPresent) return;
-		itemContainer.deleteAllChildren();
 		itemWidgets.clear();
-		for (int i = 0; i < Math.max(rolledEntries.size(), unlockedEntries.size()); i++)
-		{
-			createWidget();
-		}
+		WidgetUtil.apply(client, ITEM_CONTAINER_COMP_ID, w -> {
+			w.deleteAllChildren();
+			for (int i = 0; i < Math.max(rolledEntries.size(), unlockedEntries.size()); i++)
+			{
+				createWidget(w);
+			}
+		});
 	}
 
 	/**
@@ -316,17 +295,18 @@ public class CLog {
 				.filter(e -> e.getItemName().toLowerCase().contains(filter))
 				.collect(Collectors.toList());
 
-		for (int i = 0; i < itemWidgets.size(); i++)
+		for (Widget widget : itemWidgets)
 		{
-			Widget w = itemWidgets.get(i);
-			if (i < matchingEntries.size())
-			{
-				updateWidget(w, matchingEntries.get(i));
-				w.setHidden(false);
-			} else {
-				w.setHidden(true);
-			}
-			w.revalidate();
+			WidgetUtil.apply(widget, w -> {
+				if (widget.getIndex() < matchingEntries.size())
+				{
+					updateWidget(w, matchingEntries.get(widget.getIndex()));
+					w.setHidden(false);
+				} else {
+					w.setHidden(true);
+				}
+				w.revalidate();
+			});
 		}
 
 		currentHeight = Math.max(Y_INCREMENT, (matchingEntries.size() + (PER_ROW - 1)) / PER_ROW * Y_INCREMENT);
@@ -336,23 +316,26 @@ public class CLog {
 	/**
 	 * Overrides the progress displayed in the character summary
 	 */
-	private void replaceProgress() {
-		if (!summaryPresent) return;
-
-		Widget progress = charSummary.getChild(SUMMARY_CHILD_INDEX);
-		if (progress == null || progress.getText().equals(lastProgressText)) return;
-
-		String newText = String.format("<col=0dc10d>%s/%s</col>",
-									   unlockedItemsManager.getUnlockCount(), allTradeableItems.size());
-		progress.setText(newText);
-		lastProgressText = newText;
+	private void replaceProgress(Widget summary)
+	{
+		String progressText = String.format(
+				"<col=0dc10d>%s/%s</col>",
+				showRolled ? rolledItemsManager.getRollCount() : unlockedItemsManager.getUnlockCount(),
+				allTradeableItems.size()
+		);
+		WidgetUtil.applyToChild(summary, SUMMARY_CHILD_INDEX, w -> {
+			if (w.getText().equals(lastProgressText)) return;
+			w.setText(progressText);
+			lastProgressText = progressText;
+		});
 	}
 
 	/**
 	 * Replaces the text of widgets within the CLog header
 	 */
-	private void replaceHeaderContent() {
-		Widget[] headerComponents = itemHeader.getDynamicChildren();
+	private void replaceHeaderContent(Widget header) {
+		WidgetUtil.applyToChild(header, 0, w -> { w.setText("Chance Man"); });
+		Widget[] headerComponents = WidgetUtil.getChildren(header, ChildType.DYNAMIC);
 		if (headerComponents.length < 2) return;
 
 		if (headerComponents[0] != null) {
@@ -414,18 +397,18 @@ public class CLog {
 	/**
 	 * Creates the swap button widget in the CLog header
 	 */
-	private void createSwapButton()
+	private void createSwapButton(Widget header)
 	{
-		Widget swapButton = itemHeader.createChild(WidgetType.GRAPHIC);
+		Widget swapButton = header.createChild(WidgetType.GRAPHIC);
 		setupButton(swapButton, SWAP_SPRITE_ID, SWAP_X, "Swap", this::toggleDisplay);
 	}
 
 	/**
 	 * Creates the search button widget in the CLog header
 	 */
-	private void createSearchButton()
+	private void createSearchButton(Widget header)
 	{
-		searchButton = itemHeader.createChild(WidgetType.GRAPHIC);
+		searchButton = header.createChild(WidgetType.GRAPHIC);
 		setupButton(searchButton, SpriteID.GE_SEARCH, SEARCH_X, "Open", this::openSearch);
 	}
 
@@ -498,26 +481,18 @@ public class CLog {
 	 */
 	private void updateScrollbar() {
 		if (!isPendingScrollUpdate()) return;
-
-		Widget itemContainer = client.getWidget(ITEM_CONTAINER_COMP_ID);
-		if (itemContainer == null) return;
-
-		Widget scrollbar = client.getWidget(SCROLLBAR_COMP_ID);
-		if (scrollbar == null) return;
-
-		itemContainer.setScrollHeight(currentHeight);
-		itemContainer.revalidateScroll();
-
-		client.runScript(
-				ScriptID.UPDATE_SCROLLBAR,
-				scrollbar.getId(),
-				itemContainer.getId(),
-				0
-		);
-
-		itemContainer.revalidateScroll();
-		scrollbar.revalidateScroll();
-
+		WidgetUtil.apply(client, ITEM_CONTAINER_COMP_ID, w -> {
+			w.setScrollHeight(currentHeight);
+			w.revalidateScroll();
+			client.runScript(
+					ScriptID.UPDATE_SCROLLBAR,
+					SCROLLBAR_COMP_ID,
+					ITEM_CONTAINER_COMP_ID,
+					0
+			);
+			w.revalidateScroll();
+		});
+		WidgetUtil.apply(client, SCROLLBAR_COMP_ID, Widget::revalidateScroll);
 		setPendingScrollUpdate(false);
 	}
 
@@ -579,6 +554,7 @@ public class CLog {
 	public void onBeforeRender(BeforeRender event)
 	{
 		// Using client tick for this results in a one frame delay
-		if (managersReady() && summaryPresent) replaceProgress();
+		if (managersReady()) WidgetUtil.apply(client, SUMMARY_COMP_ID, this::replaceProgress);
+
 	}
 }
