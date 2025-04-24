@@ -1,6 +1,5 @@
 package com.chanceman.ui.ge;
 
-import com.chanceman.RolledItemsManager;
 import com.chanceman.UnlockedItemsManager;
 import com.chanceman.ui.ChildType;
 import com.chanceman.ui.WidgetUtil;
@@ -37,22 +36,19 @@ public class GrandExchange
 	private final Client client;
 	private final EventBus eventBus;
 	private final UnlockedItemsManager unlockedItemsManager;
-	private final RolledItemsManager rolledItemsManager;
 
-	boolean offerOpen = false;
-	boolean cannotTrade = false;
-	boolean buttonUpdated = false;
+	private boolean offerOpen = false;
+	private boolean cannotTrade = false;
+	private boolean buttonUpdated = false;
 
 	@Inject
 	public GrandExchange(Client client,
 						 EventBus eventBus,
-						 UnlockedItemsManager unlockedItemsManager,
-						 RolledItemsManager rolledItemsManager)
+						 UnlockedItemsManager unlockedItemsManager)
 	{
 		this.client = client;
 		this.eventBus = eventBus;
 		this.unlockedItemsManager = unlockedItemsManager;
-		this.rolledItemsManager = rolledItemsManager;
 	}
 
 	public void startUp() { eventBus.register(this); }
@@ -70,6 +66,7 @@ public class GrandExchange
 					if (w.getType() == WidgetType.TEXT && w.getText().startsWith("<"))
 						w.setHidden(cannotTrade);
 				});
+		this.buttonUpdated = true;
 	}
 
 	/**
@@ -85,7 +82,7 @@ public class GrandExchange
 					Widget text = siblings[w.getIndex() + 1];
 					Widget sprite = siblings[w.getIndex() + 2];
 					int itemId = sprite.getItemId();
-					if (!(unlockedItemsManager.isUnlocked(itemId) && rolledItemsManager.isRolled(itemId)))
+					if (!unlockedItemsManager.isUnlocked(itemId))
 					{
 						text.setOpacity(UNAVAILABLE_OPACITY);
 						sprite.setOpacity(UNAVAILABLE_OPACITY);
@@ -106,7 +103,7 @@ public class GrandExchange
 		if (event.getScriptId() == ScriptID.GE_OFFERS_SETUP_BUILD)
 		{
 			int itemId = client.getVarpValue(VarPlayerID.TRADINGPOST_SEARCH);
-			cannotTrade = !(unlockedItemsManager.isUnlocked(itemId) && rolledItemsManager.isRolled(itemId));
+			cannotTrade = !unlockedItemsManager.isUnlocked(itemId);
 			buttonUpdated = false;
 			offerOpen = true;
 		}
