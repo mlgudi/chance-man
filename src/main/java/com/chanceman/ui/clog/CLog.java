@@ -202,6 +202,7 @@ public class CLog {
 	 */
 	private void reset()
 	{
+		if (itemHeader != null) { itemHeader.deleteAllChildren(); }
 		headerPresent = false;
 		containerPresent = false;
 		unlocked.clear();
@@ -218,6 +219,7 @@ public class CLog {
 	private void clearAllData() {
 		reset();
 		unlockedEntries.clear();
+		rolledEntries.clear();
 		itemWidgets.clear();
 	}
 
@@ -351,7 +353,7 @@ public class CLog {
 	 */
 	private void replaceHeaderContent() {
 		Widget[] headerComponents = itemHeader.getDynamicChildren();
-		if (headerComponents.length == 0) return;
+		if (headerComponents.length < 2) return;
 
 		if (headerComponents[0] != null) {
 			headerComponents[0].setText("Chance Man");
@@ -361,7 +363,7 @@ public class CLog {
 												unlockedItemsManager.getUnlockCount(), allTradeableItems.size());
 			headerComponents[1].setText(progressText);
 		}
-		if (headerComponents.length > 2) {
+		if (headerComponents.length > 2 && headerComponents[2] != null) {
 			headerComponents[2].setText("");
 		}
 	}
@@ -524,7 +526,7 @@ public class CLog {
 	public void shutDown() { eventBus.unregister(this); }
 
 	@Subscribe
-	private void onScriptPostFired(ScriptPostFired event) {
+	public void onScriptPostFired(ScriptPostFired event) {
 		if (!managersReady()) return;
 		if (event.getScriptId() == CLOG_UI_SETUP_ID) {
 			switch (clogState)
@@ -557,13 +559,13 @@ public class CLog {
 	}
 
 	@Subscribe
-	private void onAccountChanged(AccountChanged event) {
+	public void onAccountChanged(AccountChanged event) {
 		clearAllData();
 		if (managersReady()) update();
 	}
 
 	@Subscribe
-	private void onGameTick(GameTick event)
+	public void onGameTick(GameTick event)
 	{
 		if (!managersReady()) return;
 		if (unlockedItemsManager.getUnlockCount() > unlockedEntries.size() ||
@@ -574,7 +576,7 @@ public class CLog {
 	}
 
 	@Subscribe
-	private void onBeforeRender(BeforeRender event)
+	public void onBeforeRender(BeforeRender event)
 	{
 		// Using client tick for this results in a one frame delay
 		if (managersReady() && summaryPresent) replaceProgress();
