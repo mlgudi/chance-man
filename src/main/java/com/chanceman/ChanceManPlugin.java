@@ -13,7 +13,6 @@ import com.google.inject.Provides;
 import lombok.Getter;
 import net.runelite.api.*;
 import net.runelite.api.events.*;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.eventbus.EventBus;
@@ -81,7 +80,6 @@ public class ChanceManPlugin extends Plugin
     private NavigationButton navButton;
     private ExecutorService fileExecutor;
     @Getter private final HashSet<Integer> allTradeableItems = new LinkedHashSet<>();
-    private static final int GE_SEARCH_BUILD_SCRIPT = 751;
     private boolean tradeableItemsInitialized = false;
 
     @Provides
@@ -221,32 +219,6 @@ public class ChanceManPlugin extends Plugin
         if (chanceManPanel != null)
         {
             SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
-        }
-    }
-
-    @Subscribe
-    public void onScriptPostFired(ScriptPostFired event)
-    {
-        if (event.getScriptId() == GE_SEARCH_BUILD_SCRIPT) { killSearchResults(); }
-    }
-
-    private void killSearchResults() {
-        Widget geSearchResults = client.getWidget(162, 51);
-        if (geSearchResults == null) {
-            return;
-        }
-        Widget[] children = geSearchResults.getDynamicChildren();
-        if (children == null || children.length < 2 || children.length % 3 != 0) {
-            return;
-        }
-        Set<Integer> unlocked = unlockedItemsManager.getUnlockedItems();
-        for (int i = 0; i < children.length; i += 3) {
-            int offerItemId = children[i + 2].getItemId();
-            if (!unlocked.contains(offerItemId)) {
-                children[i].setHidden(true);
-                children[i + 1].setOpacity(70);
-                children[i + 2].setOpacity(70);
-            }
         }
     }
 
