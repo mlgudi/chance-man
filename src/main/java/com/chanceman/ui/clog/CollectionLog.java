@@ -318,12 +318,12 @@ public class CollectionLog {
 	 */
 	private void replaceProgress(Widget summary)
 	{
-		String progressText = String.format(
-				"<col=0dc10d>%s/%s</col>",
-				unlockedItemsManager.getUnlockCount(), allTradeableItems.size()
-		);
 		WidgetUtil.applyToChild(summary, SUMMARY_CHILD_INDEX, w -> {
 			if (w.getText().equals(lastProgressText)) return;
+			String progressText = String.format(
+					"<col=0dc10d>%s/%s</col>",
+					unlockedItemsManager.getUnlockCount(), allTradeableItems.size()
+			);
 			w.setText(progressText);
 			lastProgressText = progressText;
 		});
