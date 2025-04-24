@@ -6,9 +6,7 @@ import com.chanceman.account.AccountChanged;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.*;
-import net.runelite.api.events.ClientTick;
-import net.runelite.api.events.ScriptPostFired;
-import net.runelite.api.events.WidgetClosed;
+import net.runelite.api.events.*;
 import net.runelite.api.widgets.*;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.chat.ChatMessageManager;
@@ -16,12 +14,10 @@ import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.chatbox.ChatboxPanelManager;
-import net.runelite.client.game.chatbox.ChatboxTextInput;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -36,34 +32,75 @@ public class CLog {
 		OPEN;
 	}
 
-	private static final int CLOG_UI_SETUP = 7797;
-	private static final int WINDOW_CLOSE = 903;
-	private static final int COLLECTION_LOG_GROUP = 621;
-	private static final int COMBAT_ACHIEVEMENT_BUTTON = 21;
-	private static final int COLLECTION_VIEW_SCROLLBAR = 38;
+	// Script IDs
+	private static final int CLOG_UI_SETUP_ID = 7797;
+	private static final int WINDOW_CLOSE_ID = 903;
 
-	private static final int MAX_X = 210;
-	private static final int X_INCREMENT = 42;
-	private static final int Y_INCREMENT = 40;
+	// CLog widget IDs
+	private static final int CLOG_HEADER_COMP_ID = 40697876;
+	private static final int ITEM_CONTAINER_COMP_ID = 40697893;
+	private static final int CLOG_GROUP_ID = 621;
+	private static final int CA_BUTTON_CHILD_ID = 21;
+	private static final int SCROLLBAR_CHILD_ID = 38;
 
-	@Inject private Client client;
-	@Inject private ClientThread clientThread;
-	@Inject private EventBus eventBus;
-	@Inject private ChatboxPanelManager chatboxPanelManager;
-	@Inject private ChatMessageManager chatMessageManager;
-	@Inject private UnlockedItemsManager unlockedItemsManager;
-	@Inject private RolledItemsManager rolledItemsManager;
+	// Summary widget IDs
+	private static final int SUMMARY_COMP_ID = 46661634;
+	private static final int SUMMARY_CHILD_INDEX = 88;
+
+	// Dimensions/positions
+	private static final int VIEW_WIDTH = 288;
+	private static final int SCROLLBAR_WIDTH = 17;
+	private static final int ITEM_WIDTH = 36;
+	private static final int ITEM_HEIGHT = 32;
+
+	private static final int CONTAINER_X_PAD = 7;
+	private static final int SCROLLBAR_X_PAD = 10;
+	private static final int ITEM_X_PAD = 5;
+	private static final int ROW_Y_PAD = 8;
+
+	private static final int ITEM_BASE_X = CONTAINER_X_PAD;
+	private static final int ITEM_ROW_WIDTH = VIEW_WIDTH - SCROLLBAR_WIDTH - SCROLLBAR_X_PAD - CONTAINER_X_PAD * 2;
+
+	private static final int X_INCREMENT = ITEM_WIDTH + ITEM_X_PAD;
+	private static final int Y_INCREMENT = ITEM_HEIGHT + ROW_Y_PAD;
+	private static final int PER_ROW = ITEM_ROW_WIDTH / X_INCREMENT;
+	private static int calcX(int index) { return ITEM_BASE_X + (index % PER_ROW) * X_INCREMENT; }
+	private static int calcY(int index) { return (index / PER_ROW) * Y_INCREMENT; }
+
+	private static final int BUTTON_WIDTH = 18;
+	private static final int BUTTON_HEIGHT = 17;
+	private static final int BUTTON_Y = 20;
+	private static final int SWAP_X = 5;
+	private static final int SEARCH_X = 25;
+
+	// Other widget values
+	private static final int SWAP_SPRITE_ID = 1118;
+	private static final int OPACITY_AVAILABLE = 0;
+	private static final int OPACITY_UNAVAILABLE = 130;
+
+	private final Client client;
+	private final ClientThread clientThread;
+	private final EventBus eventBus;
+	private final ChatboxPanelManager chatboxPanelManager;
+	private final ChatMessageManager chatMessageManager;
+	private final UnlockedItemsManager unlockedItemsManager;
+	private final RolledItemsManager rolledItemsManager;
 
 	@Setter private HashSet<Integer> allTradeableItems;
-	private final ArrayList<Integer> rolled = new ArrayList<>();
 	private final ArrayList<Integer> unlocked = new ArrayList<>();
-	private final HashMap<Integer, Integer> rolledIdToIndex = new HashMap<>();
-	private final HashMap<Integer, Integer> unlockedIdToIndex = new HashMap<>();
-	private final List<CLogEntry> clogEntries = new ArrayList<>();
+	private final ArrayList<Integer> rolled = new ArrayList<>();
+	private final List<CLogEntry> unlockedEntries = new ArrayList<>();
+	private final List<CLogEntry> rolledEntries = new ArrayList<>();
 
-	private ChatboxTextInput searchInput;
+	private Widget itemHeader;
+	private Widget itemContainer;
+	private Widget charSummary;
+	private boolean headerPresent = false;
+	private boolean containerPresent = false;
+	private boolean summaryPresent = false;
+
 	private Widget searchButton;
-	private List<Widget> entryWidgets;
+	private final List<Widget> itemWidgets = new ArrayList<>();
 
 	private String lastProgressText = "";
 	private OpenState clogState = OpenState.CLOSED;
@@ -72,217 +109,149 @@ public class CLog {
 	@Getter @Setter private boolean showRolled = false;
 	@Getter @Setter private boolean pendingScrollUpdate = false;
 
-	public void startUp() {
-		eventBus.register(this);
+	@Inject
+	public CLog(
+			Client client,
+			ClientThread clientThread,
+			EventBus eventBus,
+			ChatboxPanelManager chatboxPanelManager,
+			ChatMessageManager chatMessageManager,
+			UnlockedItemsManager unlockedItemsManager,
+			RolledItemsManager rolledItemsManager
+	) {
+		this.client = client;
+		this.clientThread = clientThread;
+		this.eventBus = eventBus;
+		this.chatboxPanelManager = chatboxPanelManager;
+		this.chatMessageManager = chatMessageManager;
+		this.unlockedItemsManager = unlockedItemsManager;
+		this.rolledItemsManager = rolledItemsManager;
 	}
 
-	public void shutDown() {
-		eventBus.unregister(this);
-	}
+	// Helper methods
 
-	@Subscribe
-	private void onScriptPostFired(ScriptPostFired event) {
-		if (!ready()) return;
-
-		if (event.getScriptId() == CLOG_UI_SETUP) {
-			if (clogState == OpenState.CLOSED)
-			{
-				clogState = OpenState.INIT;
-				return;
-			} else if (clogState == OpenState.INIT)
-			{
-				clogState = OpenState.OPEN;
-				update();
-				override();
-			}
-		}
-
-		if (event.getScriptId() == WINDOW_CLOSE) {
-			clogState = OpenState.CLOSED;
-			reset();
-		}
-	}
-
-	@Subscribe
-	public void onClientTick(ClientTick event) {
-		if (!ready()) return;
-		if (clogState == OpenState.OPEN) updateScrollbar();
-		replaceProgress();
-	}
-
-	@Subscribe
-	public void onWidgetClosed(WidgetClosed event) {
-		if (event.getGroupId() == COLLECTION_LOG_GROUP) {
-			reset();
-		}
-	}
-
-	@Subscribe
-	private void onAccountChanged(AccountChanged event) {
-		clearAllData();
-		update();
-	}
-
-	private boolean ready() {
+	/**
+	 * @return True if the CLog UI is ready to be overridden once opened
+	 */
+	private boolean managersReady() {
 		return unlockedItemsManager.ready() && allTradeableItems != null;
 	}
-
-	private void update() {
-		rolled.clear();
-		unlocked.clear();
-		if (ready()) {
-			rolled.addAll(rolledItemsManager.getRolledItems());
-			unlocked.addAll(unlockedItemsManager.getUnlockedItems());
-		}
+	private List<Integer> targetItemList(boolean isRolled) { return isRolled ? rolled : unlocked; }
+	private List<CLogEntry> targetEntries(boolean isRolled) { return isRolled ? rolledEntries : unlockedEntries; }
+	private boolean isAvailable(int itemId)
+	{
+		return showRolled ? unlockedItemsManager.isUnlocked(itemId) : rolledItemsManager.isRolled(itemId);
 	}
 
-	private void reset() {
-		unlocked.clear();
-		rolled.clear();
-		if (entryWidgets != null) {
-			entryWidgets.clear();
-		}
-		closeSearchInput();
+	/**
+	 * Updates the fields for core widgets (widgets that are targeted for modification)
+	 */
+	private void updateCoreWidgets()
+	{
+		itemHeader = client.getWidget(CLOG_HEADER_COMP_ID);
+		itemContainer = client.getWidget(ITEM_CONTAINER_COMP_ID);
+		charSummary = client.getWidget(SUMMARY_COMP_ID);
+		headerPresent = itemHeader != null;
+		containerPresent = itemContainer != null;
+		summaryPresent = charSummary != null;
 	}
 
-	private void closeSearchInput() {
-		if (searchInput != null) {
-			chatboxPanelManager.close();
-			searchInput = null;
-		}
-	}
-
-	private void clearAllData() {
-		unlocked.clear();
-		rolled.clear();
-		unlockedIdToIndex.clear();
-		rolledIdToIndex.clear();
-		clogEntries.clear();
-		if (entryWidgets != null) {
-			entryWidgets.clear();
-		}
-	}
-
-	private CLogEntry addEntry(int index, boolean initialCreation) {
-		int unlockedId = index < unlocked.size() ? unlocked.get(index) : 0;
-		int rolledId = index < rolled.size() ? rolled.get(index) : 0;
-
-		unlockedIdToIndex.put(unlockedId, index);
-		rolledIdToIndex.put(rolledId, index);
-
-		if (!initialCreation) updateCrossReferences(unlockedId, rolledId);
-		ItemComposition u = client.getItemDefinition(unlockedId);
-		ItemComposition r = client.getItemDefinition(rolledId);
-
-		return new CLogEntry(
+	/**
+	 * <p>Creates a new CLogEntry for the given index within the current target list (unlocked or rolled).</p>
+	 * <p>Appends the new CLogEntry to the relevant list.</p>
+	 * @param index The index within the target list
+	 * @param isRolled Whether the target list is rolled or unlocked
+	 */
+	private void addEntry(int index, boolean isRolled) {
+		int itemId = targetItemList(isRolled).get(index);
+		ItemComposition comp = client.getItemDefinition(itemId);
+		CLogEntry entry = new CLogEntry(
 				index,
-				unlockedId,
-				u.getName(),
-				rolledId,
-				r.getName(),
-				rolledItemsManager.isRolled(unlockedId),
-				unlockedItemsManager.isUnlocked(rolledId)
+				itemId,
+				comp.getName()
 		);
-	}
-
-	private void updateCrossReferences(int unlockedId, int rolledId) {
-		if (rolledIdToIndex.containsKey(unlockedId)) {
-			clogEntries.get(rolledIdToIndex.get(rolledId)).setRolledIsUnlocked(true);
-		}
-		if (unlockedIdToIndex.containsKey(rolledId)) {
-			clogEntries.get(unlockedIdToIndex.get(unlockedId)).setUnlockedIsRolled(true);
+		if (isRolled) {
+			rolledEntries.add(entry);
+		} else {
+			unlockedEntries.add(entry);
 		}
 	}
 
-	private void replaceProgress() {
-		Widget charSummContainer = client.getWidget(ComponentID.CHARACTER_SUMMARY_CONTAINER);
-		if (charSummContainer == null) return;
-
-		Widget[] children = charSummContainer.getDynamicChildren();
-		if (children == null || children.length < 88) return;
-
-		Widget progress = children[88];
-		if (progress == null || progress.getText().equals(lastProgressText)) return;
-
-		String newText = "<col=0dc10d>" + unlocked.size() + "/" + allTradeableItems.size() + "</col>";
-		progress.setText(newText);
-		lastProgressText = newText;
-	}
-
-	private void override() {
-		Widget combatAchievementsButton = client.getWidget(COLLECTION_LOG_GROUP, COMBAT_ACHIEVEMENT_BUTTON);
-		if (combatAchievementsButton == null) return;
-
-		Widget button = client.getWidget(COLLECTION_LOG_GROUP, COMBAT_ACHIEVEMENT_BUTTON);
-		if (button == null) return;
-		button.setHidden(true);
-
-		Widget collectionViewHeader = client.getWidget(ComponentID.COLLECTION_LOG_ENTRY_HEADER);
-		if (collectionViewHeader == null) return;
-
-		replaceHeaderContent(collectionViewHeader);
-		createItemList(collectionViewHeader);
-	}
-
-	private void replaceHeaderContent(Widget collectionViewHeader) {
-		Widget[] headerComponents = collectionViewHeader.getDynamicChildren();
-		if (headerComponents.length == 0) return;
-
-		if (headerComponents[0] != null) {
-			headerComponents[0].setText("Chance Man");
+	/**
+	 * Clears prior roll/unlock data and, if ready, updates the entry lists with any new entries.
+	 */
+	private void update()
+	{
+		rolled.clear();
+		unlocked.clear();
+		rolled.addAll(rolledItemsManager.getRolledItems());
+		unlocked.addAll(unlockedItemsManager.getUnlockedItems());
+		for (int i = unlockedEntries.size(); i < unlocked.size(); i++)
+		{
+			addEntry(i, false);
 		}
-		if (headerComponents[1] != null) {
-			headerComponents[1].setText(progressTextHeader());
-		}
-		if (headerComponents.length > 2) {
-			headerComponents[2].setText("");
+		for (int i = rolledEntries.size(); i < rolled.size(); i++)
+		{
+			addEntry(i, true);
 		}
 	}
 
-	private void createItemList(Widget collectionViewHeader) {
-		if (collectionViewHeader == null || collectionViewHeader.getDynamicChildren().length == 0) return;
-
-		createSwapButton(collectionViewHeader);
-		createSearchButton(collectionViewHeader);
-
-		Widget collectionView = client.getWidget(ComponentID.COLLECTION_LOG_ENTRY_ITEMS);
-		if (collectionView == null) return;
-
-		collectionView.deleteAllChildren();
-		addItems(collectionView);
-		updateCurrentHeight(collectionView);
-		setPendingScrollUpdate(true);
+	/**
+	 * <p>Resets state for initialisation when the CLog is next opened.</p>
+	 * <p>Preserves the CLogEntry values for re-use.</p>
+	 */
+	private void reset()
+	{
+		headerPresent = false;
+		containerPresent = false;
+		unlocked.clear();
+		rolled.clear();
+		itemWidgets.clear();
+		closeSearch(true);
 	}
 
-	private void addItems(Widget collectionView) {
-		int index = 0;
-		int x = 0;
-		int y = 0;
+	/**
+	 * <p>Resets state for initialisation with a new account.</p>
+	 * <p>Clears the CLogEntry values.</p>
+	 * <p>Called upon account changes.</p>
+	 */
+	private void clearAllData() {
+		reset();
+		unlockedEntries.clear();
+		itemWidgets.clear();
+	}
 
-		boolean initialCreation = clogEntries.isEmpty();
-
-		for (int i = 0; i < unlocked.size(); i++) {
-			if (index >= clogEntries.size()) {
-				clogEntries.add(addEntry(index, initialCreation));
-			}
-			addItem(collectionView, clogEntries.get(index), x, y);
-
-			x += X_INCREMENT;
-			if (x > MAX_X) {
-				x = 0;
-				y += Y_INCREMENT;
-			}
-			index++;
+	/**
+	 * Main method to override the CLog content
+	 */
+	private void override()
+	{
+		update();
+		updateCoreWidgets();
+		if (headerPresent)
+		{
+			Widget button = client.getWidget(CLOG_GROUP_ID, CA_BUTTON_CHILD_ID);
+			if (button != null) button.setHidden(true);
+			replaceHeaderContent();
+			createSwapButton();
+			createSearchButton();
+		}
+		if (containerPresent)
+		{
+			createWidgets();
+			updateWidgets("");
 		}
 	}
 
-	private void addItem(Widget collectionView, CLogEntry display, int x, int y) {
-		Widget newItem = collectionView.createChild(display.getIndex(), WidgetType.GRAPHIC);
-		setupItemWidget(newItem, display, x, y);
-		updateEntry(newItem, display);
-	}
-
-	private void setupItemWidget(Widget widget, CLogEntry display, int x, int y) {
+	/**
+	 * Creates a child widget to display items within the itemContainer, positioned according to its index.
+	 */
+	private void createWidget()
+	{
+		Widget widget = itemContainer.createChild(WidgetType.GRAPHIC);
+		int index = widget.getIndex();
+		int x = calcX(index);
+		int y = calcY(index);
 		widget.setContentType(0);
 		widget.setItemQuantity(1);
 		widget.setItemQuantityMode(0);
@@ -290,50 +259,149 @@ public class CLog {
 		widget.setModelType(1);
 		widget.setSpriteId(-1);
 		widget.setBorderType(1);
-		widget.setFilled(false);
 		widget.setOriginalX(x);
 		widget.setOriginalY(y);
-		widget.setOriginalWidth(36);
-		widget.setOriginalHeight(32);
+		widget.setOriginalWidth(ITEM_WIDTH);
+		widget.setOriginalHeight(ITEM_HEIGHT);
 		widget.setHasListener(true);
-		widget.setAction(1, "Inspect");
-		widget.setOnOpListener((JavaScriptCallback) e -> handleItemAction(display));
+		widget.setNoClickThrough(true);
+		widget.setOnOpListener((JavaScriptCallback) e -> {
+			StringBuilder message = new StringBuilder();
+			String name = widget.getName();
+			boolean available = isAvailable(widget.getItemId());
+			if (showRolled)
+			{
+				message.append(name).append(" was rolled");
+				message.append(available ? " and unlocked." : ", but is not unlocked.");
+			} else {
+				message.append(name).append(" is unlocked");
+				message.append(available ? " and rolled." : ", but has not been rolled.");
+			}
+			chatMessageManager.queue(
+					QueuedMessage.builder()
+								 .type(ChatMessageType.ITEM_EXAMINE)
+								 .runeLiteFormattedMessage(message.toString())
+								 .build()
+			);
+		});
+		widget.setAction(1, "Examine");
+		widget.setHidden(false);
+		itemWidgets.add(widget);
 	}
 
-	private void updateEntry(Widget entry, CLogEntry display) {
-		int newId = showRolled ? display.getRolledId() : display.getUnlockedId();
-		ItemComposition comp = client.getItemDefinition(newId);
-
-		entry.setItemId(newId);
-		entry.setOpacity(showRolled ? display.rolledOpacity() : display.unlockedOpacity());
-		entry.setName(comp.getName());
-		entry.revalidate();
+	/**
+	 * Deletes all children and creates the needed number of child widgets within itemContainer.
+	 */
+	private void createWidgets()
+	{
+		if (!containerPresent) return;
+		itemContainer.deleteAllChildren();
+		itemWidgets.clear();
+		for (int i = 0; i < Math.max(rolledEntries.size(), unlockedEntries.size()); i++)
+		{
+			createWidget();
+		}
 	}
 
-	private void handleItemAction(CLogEntry entry) {
-		chatMessageManager.queue(QueuedMessage.builder()
-											  .type(ChatMessageType.ITEM_EXAMINE)
-											  .runeLiteFormattedMessage(entry.actionText(showRolled))
-											  .build());
+	/**
+	 * Updates the displayed widgets to show only those matching the given filter
+	 * @param filter The filter to apply
+	 */
+	private void updateWidgets(String filter)
+	{
+		List<CLogEntry> matchingEntries = filter.isEmpty() ? targetEntries(showRolled) : targetEntries(showRolled)
+				.stream()
+				.filter(e -> e.getItemName().toLowerCase().contains(filter))
+				.collect(Collectors.toList());
+
+		for (int i = 0; i < itemWidgets.size(); i++)
+		{
+			Widget w = itemWidgets.get(i);
+			if (i < matchingEntries.size())
+			{
+				updateWidget(w, matchingEntries.get(i));
+				w.setHidden(false);
+			} else {
+				w.setHidden(true);
+			}
+			w.revalidate();
+		}
+
+		currentHeight = Math.max(Y_INCREMENT, (matchingEntries.size() + (PER_ROW - 1)) / PER_ROW * Y_INCREMENT);
+		setPendingScrollUpdate(true);
 	}
 
-	private void createSwapButton(Widget header) {
-		Widget swapButton = header.createChild(-1, WidgetType.GRAPHIC);
-		setupButton(swapButton, 1118, 25, "Swap", this::toggleDisplay);
+	/**
+	 * Overrides the progress displayed in the character summary
+	 */
+	private void replaceProgress() {
+		if (!summaryPresent) return;
+
+		Widget progress = charSummary.getChild(SUMMARY_CHILD_INDEX);
+		if (progress == null || progress.getText().equals(lastProgressText)) return;
+
+		String newText = String.format("<col=0dc10d>%s/%s</col>",
+									   unlockedItemsManager.getUnlockCount(), allTradeableItems.size());
+		progress.setText(newText);
+		lastProgressText = newText;
 	}
 
-	private void createSearchButton(Widget header) {
-		searchButton = header.createChild(-1, WidgetType.GRAPHIC);
-		setupButton(searchButton, SpriteID.GE_SEARCH, 5, "Open", this::openSearch);
+	/**
+	 * Replaces the text of widgets within the CLog header
+	 */
+	private void replaceHeaderContent() {
+		Widget[] headerComponents = itemHeader.getDynamicChildren();
+		if (headerComponents.length == 0) return;
+
+		if (headerComponents[0] != null) {
+			headerComponents[0].setText("Chance Man");
+		}
+		if (headerComponents[1] != null) {
+			String progressText = String.format("<col=0dc10d>%s/%s</col>",
+												unlockedItemsManager.getUnlockCount(), allTradeableItems.size());
+			headerComponents[1].setText(progressText);
+		}
+		if (headerComponents.length > 2) {
+			headerComponents[2].setText("");
+		}
 	}
 
+	/**
+	 * Updates an individual widget to display the given CLogEntry item
+	 * @param widget The widget to update
+	 * @param display The CLogEntry to display
+	 */
+	private void updateWidget(Widget widget, CLogEntry display) {
+		widget.setHidden(false);
+		widget.setItemId(display.getItemId());
+		widget.setName(display.getItemName());
+		if (showRolled)
+		{
+			widget.setOpacity(unlockedItemsManager.isUnlocked(display.getItemId()) ? OPACITY_AVAILABLE :
+									  OPACITY_UNAVAILABLE);
+		} else {
+			widget.setOpacity(rolledItemsManager.isRolled(display.getItemId()) ? OPACITY_AVAILABLE :
+									  OPACITY_UNAVAILABLE);
+		}
+		widget.revalidate();
+	}
+
+	// Button creation
+	/**
+	 * Sets up button widget in the CLog header with an on op action
+	 * @param button The button widget
+	 * @param spriteId The sprite id
+	 * @param x The x position
+	 * @param action The action name
+	 * @param onOpAction The on op action to run
+	 */
 	private void setupButton(Widget button, int spriteId, int x, String action, Runnable onOpAction) {
 		button.setSpriteId(spriteId);
-		button.setOriginalWidth(18);
-		button.setOriginalHeight(17);
+		button.setOriginalWidth(BUTTON_WIDTH);
+		button.setOriginalHeight(BUTTON_HEIGHT);
 		button.setXPositionMode(WidgetPositionMode.ABSOLUTE_RIGHT);
 		button.setOriginalX(x);
-		button.setOriginalY(20);
+		button.setOriginalY(BUTTON_Y);
 		button.setHasListener(true);
 		button.setAction(1, action);
 		button.setOnOpListener((JavaScriptCallback) e -> onOpAction.run());
@@ -341,128 +409,174 @@ public class CLog {
 		button.revalidate();
 	}
 
+	/**
+	 * Creates the swap button widget in the CLog header
+	 */
+	private void createSwapButton()
+	{
+		Widget swapButton = itemHeader.createChild(WidgetType.GRAPHIC);
+		setupButton(swapButton, SWAP_SPRITE_ID, SWAP_X, "Swap", this::toggleDisplay);
+	}
+
+	/**
+	 * Creates the search button widget in the CLog header
+	 */
+	private void createSearchButton()
+	{
+		searchButton = itemHeader.createChild(WidgetType.GRAPHIC);
+		setupButton(searchButton, SpriteID.GE_SEARCH, SEARCH_X, "Open", this::openSearch);
+	}
+
+	// Display toggle related
+	/**
+	 * Swaps between displaying rolled and unlocked items
+	 */
 	private void toggleDisplay() {
 		clientThread.invokeLater(() -> {
 			client.playSoundEffect(SoundEffectID.UI_BOOP);
-			Widget collectionView = client.getWidget(ComponentID.COLLECTION_LOG_ENTRY_ITEMS);
-			swapItems(collectionView);
+			swapItems();
 		});
 	}
 
-	private void swapItems(Widget collectionView) {
+	/**
+	 * Updates the displayed widgets when the display is toggled
+	 */
+	private void swapItems() {
 		showRolled = !showRolled;
-
-		int index = 0;
-		for (CLogEntry display : clogEntries) {
-			updateEntry(collectionView.getDynamicChildren()[index], display);
-			index++;
+		for (int i = 0; i < targetEntries(showRolled).size(); i++) {
+			Widget widget = itemWidgets.get(i);
+			if (targetEntries(showRolled).size() > i)
+			{
+				CLogEntry display = targetEntries(showRolled).get(i);
+				updateWidget(widget, display);
+			} else {
+				widget.setHidden(true);
+			}
+			widget.revalidate();
 		}
+		updateWidgets("");
 	}
 
+	// Search related
+	/**
+	 * Opens the search chatbox input and updates the search button to close it on op
+	 */
 	private void openSearch() {
-		updateFilter("");
+		updateWidgets("");
 		client.playSoundEffect(SoundEffectID.UI_BOOP);
 		searchButton.setAction(1, "Close");
-		searchButton.setOnOpListener((JavaScriptCallback) e -> closeSearch());
-
-		searchInput = chatboxPanelManager.openTextInput("Search unlock list")
-										 .onChanged(s -> clientThread.invokeLater(() -> updateFilter(s.trim())))
-										 .onClose(this::resetSearchButton)
-										 .build();
+		searchButton.setOnOpListener((JavaScriptCallback) e -> closeSearch(false));
+		chatboxPanelManager.openTextInput("Search unlock list")
+						   .onChanged(s -> clientThread.invokeLater(() -> updateWidgets(s.trim())))
+						   .onClose(this::resetSearchButton)
+						   .build();
 	}
 
-	private void closeSearch() {
-		updateFilter("");
+	/**
+	 * Closes the search chatbox input
+	 */
+	private void closeSearch(boolean silent) {
+		if (clogState == OpenState.OPEN) updateWidgets("");
 		chatboxPanelManager.close();
-		client.playSoundEffect(SoundEffectID.UI_BOOP);
+		if (!silent) client.playSoundEffect(SoundEffectID.UI_BOOP);
 	}
 
+	/**
+	 * Clears the filter and updates the search button to open the search input on op
+	 */
 	private void resetSearchButton() {
-		clientThread.invokeLater(() -> updateFilter(""));
+		clientThread.invokeLater(() -> updateWidgets(""));
 		searchButton.setOnOpListener((JavaScriptCallback) e -> openSearch());
 		searchButton.setAction(1, "Open");
 	}
 
-	private void updateFilter(String input) {
-		final Widget collectionView = client.getWidget(ComponentID.COLLECTION_LOG_ENTRY_ITEMS);
-		if (collectionView == null) return;
-
-		String filter = input.toLowerCase();
-		updateList(collectionView, filter);
-	}
-
-	private void updateList(Widget collectionView, String filter) {
-		if (entryWidgets == null) {
-			entryWidgets = Arrays.stream(collectionView.getDynamicChildren())
-								 .sorted(Comparator.comparing(Widget::getRelativeY))
-								 .collect(Collectors.toList());
-		}
-
-		entryWidgets.forEach(w -> w.setHidden(true));
-
-		Collection<Widget> matchingItems = entryWidgets.stream()
-													   .filter(w -> w.getName().toLowerCase().contains(filter))
-													   .collect(Collectors.toList());
-
-		repositionMatchingItems(matchingItems);
-		updateCurrentHeight(collectionView);
-		setPendingScrollUpdate(true);
-	}
-
-	private void repositionMatchingItems(Collection<Widget> matchingItems) {
-		int x = 0;
-		int y = 0;
-		for (Widget entry : matchingItems) {
-			entry.setHidden(false);
-			entry.setOriginalY(y);
-			entry.setOriginalX(x);
-			entry.revalidate();
-
-			x = (x + X_INCREMENT) % 252;
-			if (x == 0) {
-				y += Y_INCREMENT;
-			}
-		}
-	}
-
+	// Scrollbar
+	/**
+	 * Updates the scrollbar to match the current scroll height
+	 */
 	private void updateScrollbar() {
 		if (!isPendingScrollUpdate()) return;
 
-		Widget collectionView = client.getWidget(ComponentID.COLLECTION_LOG_ENTRY_ITEMS);
-		if (collectionView == null) return;
+		Widget itemContainer = client.getWidget(ITEM_CONTAINER_COMP_ID);
+		if (itemContainer == null) return;
 
-		Widget scrollbar = client.getWidget(COLLECTION_LOG_GROUP, COLLECTION_VIEW_SCROLLBAR);
+		Widget scrollbar = client.getWidget(CLOG_GROUP_ID, SCROLLBAR_CHILD_ID);
 		if (scrollbar == null) return;
 
-		double scrollPerc = collectionView.getScrollY() / (double) collectionView.getScrollHeight();
-		int scrollY = (int) (scrollPerc * currentHeight);
+		itemContainer.setScrollHeight(currentHeight);
+		itemContainer.revalidateScroll();
 
-		collectionView.setScrollHeight(currentHeight);
-		collectionView.revalidateScroll();
+		client.runScript(
+				ScriptID.UPDATE_SCROLLBAR,
+				scrollbar.getId(),
+				itemContainer.getId(),
+				0
+		);
 
-		client.runScript(ScriptID.UPDATE_SCROLLBAR, scrollbar.getId(), collectionView.getId(), currentHeight);
-		collectionView.setScrollY(scrollY);
-		scrollbar.setScrollY(0);
-		collectionView.revalidateScroll();
+		itemContainer.revalidateScroll();
 		scrollbar.revalidateScroll();
 
 		setPendingScrollUpdate(false);
 	}
 
-	private void updateCurrentHeight(Widget collectionView) {
-		if (collectionView == null) return;
+	// Event subscriptions
+	public void startUp() { eventBus.register(this); }
+	public void shutDown() { eventBus.unregister(this); }
 
-		Widget[] children = collectionView.getDynamicChildren();
-		if (children == null) return;
-
-		int visibleCount = (int) Arrays.stream(children)
-									   .filter(Predicate.not(Widget::isHidden))
-									   .count();
-
-		currentHeight = (visibleCount + 5) / 6 * Y_INCREMENT;
+	@Subscribe
+	private void onScriptPostFired(ScriptPostFired event) {
+		if (!managersReady()) return;
+		if (event.getScriptId() == CLOG_UI_SETUP_ID) {
+			switch (clogState)
+			{
+				case CLOSED:
+					clogState = OpenState.INIT;
+					break;
+				case INIT:
+					clogState = OpenState.OPEN;
+					override();
+					break;
+			}
+		} else if (event.getScriptId() == WINDOW_CLOSE_ID) {
+			clogState = OpenState.CLOSED;
+			reset();
+		}
 	}
 
-	private String progressTextHeader() {
-		return "<col=ff0000>" + unlocked.size() + "<col=ffffff> / " + allTradeableItems.size();
+	@Subscribe
+	public void onClientTick(ClientTick event) {
+		if (!managersReady()) return;
+		if (clogState == OpenState.OPEN && isPendingScrollUpdate()) updateScrollbar();
+	}
+
+	@Subscribe
+	public void onWidgetClosed(WidgetClosed event) {
+		if (event.getGroupId() == CLOG_GROUP_ID) {
+			reset();
+		}
+	}
+
+	@Subscribe
+	private void onAccountChanged(AccountChanged event) {
+		clearAllData();
+		if (managersReady()) update();
+	}
+
+	@Subscribe
+	private void onGameTick(GameTick event)
+	{
+		if (!managersReady()) return;
+		if (unlockedItemsManager.getUnlockCount() > unlockedEntries.size() ||
+			rolledItemsManager.getRollCount() > rolledEntries.size())
+		{
+			update();
+		}
+	}
+
+	@Subscribe
+	private void onBeforeRender(BeforeRender event)
+	{
+		// Using client tick for this results in a one frame delay
+		if (managersReady() && summaryPresent) replaceProgress();
 	}
 }
