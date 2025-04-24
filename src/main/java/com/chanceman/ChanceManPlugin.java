@@ -7,6 +7,7 @@ import com.chanceman.filters.EnsouledHeadMapping;
 import com.chanceman.menus.ActionHandler;
 import com.chanceman.filters.ItemsFilter;
 import com.chanceman.ui.clog.CLog;
+import com.chanceman.ui.ge.GrandExchange;
 import com.google.gson.Gson;
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -73,6 +74,8 @@ public class ChanceManPlugin extends Plugin
     private ItemsFilter itemsFilter;
     @Inject
     private CLog clog;
+    @Inject
+    private GrandExchange grandExchange;
 
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
@@ -98,6 +101,7 @@ public class ChanceManPlugin extends Plugin
         rolledItemsManager.setExecutor(fileExecutor);
         rollAnimationManager.startUp();
         clog.startUp();
+        grandExchange.startUp();
 
         if (!isNormalWorld())
         {
@@ -143,6 +147,7 @@ public class ChanceManPlugin extends Plugin
         }
         getInjector().getInstance(ActionHandler.class).shutDown();
         clog.shutDown();
+        grandExchange.shutDown();
 
         // Reset plugin state for a fresh initialization on restart.
         chanceManPanel = null;
