@@ -1,0 +1,140 @@
+package com.chanceman.ui;
+
+import net.runelite.api.Client;
+import net.runelite.api.widgets.Widget;
+
+import java.util.function.Consumer;
+
+/**
+ * Helpers for widget-related functionality, primarily removing the need for null-checks everywhere.
+ */
+public class WidgetUtil
+{
+
+	private static Widget[] getChildren(Widget widget, ChildType childType)
+	{
+		Widget[] children = null;
+		switch (childType)
+		{
+			case STATIC:
+				children = widget.getStaticChildren();
+				break;
+			case DYNAMIC:
+				children = widget.getDynamicChildren();
+				break;
+			case NESTED:
+				children = widget.getNestedChildren();
+				break;
+			case STANDARD:
+				children = widget.getChildren();
+				break;
+		}
+		return children;
+	}
+
+	/**
+	 * Performs a null-check and, if non-null, applies a consumer to the widget
+	 * @param client The client
+	 * @param componentId The widget component ID
+	 * @param consumer The widget consumer
+	 */
+	public static void apply(Client client, int componentId, Consumer<Widget> consumer)
+	{
+		Widget widget = client.getWidget(componentId);
+		if (widget == null) return;
+		consumer.accept(widget);
+	}
+
+	/**
+	 * Performs a null-check and, if non-null, applies a consumer to the widget
+	 * @param client The client
+	 * @param groupId The widget group ID
+	 * @param childId The widget child ID
+	 * @param consumer The widget consumer
+	 */
+	public static void apply(Client client, int groupId, int childId, Consumer<Widget> consumer)
+	{
+		Widget widget = client.getWidget(groupId, childId);
+		if (widget == null) return;
+		consumer.accept(widget);
+	}
+
+	/**
+	 * Performs null-checks and, if non-null, applies a consumer to the child widget of the given index
+	 * @param client The client
+	 * @param componentId The widget group ID
+	 * @param childIndex The index of the target child widget
+	 * @param consumer The widget consumer
+	 */
+	public static void applyToChild(Client client, int componentId, int childIndex, Consumer<Widget> consumer)
+	{
+		Widget widget = client.getWidget(componentId);
+		if (widget == null) return;
+
+		Widget child = widget.getChild(childIndex);
+		if (child == null) return;
+
+		consumer.accept(child);
+	}
+
+	/**
+	 * Performs null-checks and, if non-null, applies a consumer to the child widget of the given index
+	 * @param client The client
+	 * @param groupId The widget group ID
+	 * @param childId The widget child ID
+	 * @param childIndex The index of the target child widget
+	 * @param consumer The widget consumer
+	 */
+	public static void applyToChild(Client client, int groupId, int childId, int childIndex, Consumer<Widget> consumer)
+	{
+		Widget widget = client.getWidget(groupId, childId);
+		if (widget == null) return;
+
+		Widget child = widget.getChild(childIndex);
+		if (child == null) return;
+
+		consumer.accept(child);
+	}
+
+	public static void applyToAllChildren(Client client, int componentId, Consumer<Widget> consumer)
+	{
+		Widget widget = client.getWidget(componentId);
+		if (widget == null) return;
+
+		Widget[] children = widget.getChildren();
+		if (children == null) return;
+
+		for (Widget child : children)
+		{
+			if (child == null) continue;
+			consumer.accept(child);
+		}
+	}
+
+	public static void applyToAllChildren(Client client, int componentId, ChildType type, Consumer<Widget> consumer)
+	{
+		Widget widget = client.getWidget(componentId);
+		if (widget == null) return;
+
+		Widget[] children = getChildren(widget, type);
+		for (Widget child : children)
+		{
+			if (child == null) continue;
+			consumer.accept(child);
+		}
+	}
+
+	public static void applyToAllChildren(Client client, int groupId, int childId, ChildType type,
+										  Consumer<Widget> consumer)
+	{
+		Widget widget = client.getWidget(groupId, childId);
+		if (widget == null) return;
+
+		Widget[] children = getChildren(widget, type);
+		for (Widget child : children)
+		{
+			if (child == null) continue;
+			consumer.accept(child);
+		}
+	}
+}
