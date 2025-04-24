@@ -502,7 +502,7 @@ public class CLog {
 		Widget itemContainer = client.getWidget(ITEM_CONTAINER_COMP_ID);
 		if (itemContainer == null) return;
 
-		Widget scrollbar = client.getWidget(CA_BUTTON_COMP_ID);
+		Widget scrollbar = client.getWidget(SCROLLBAR_COMP_ID);
 		if (scrollbar == null) return;
 
 		itemContainer.setScrollHeight(currentHeight);
