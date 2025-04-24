@@ -37,11 +37,11 @@ public class CLog {
 	private static final int WINDOW_CLOSE_ID = 903;
 
 	// CLog widget IDs
+	private static final int CLOG_GROUP_ID = 621;
 	private static final int CLOG_HEADER_COMP_ID = 40697876;
 	private static final int ITEM_CONTAINER_COMP_ID = 40697893;
-	private static final int CLOG_GROUP_ID = 621;
-	private static final int CA_BUTTON_CHILD_ID = 21;
-	private static final int SCROLLBAR_CHILD_ID = 38;
+	private static final int CA_BUTTON_COMP_ID = 40697877;
+	private static final int SCROLLBAR_COMP_ID = 40697894;
 
 	// Summary widget IDs
 	private static final int SUMMARY_COMP_ID = 46661634;
@@ -232,7 +232,7 @@ public class CLog {
 		updateCoreWidgets();
 		if (headerPresent)
 		{
-			Widget button = client.getWidget(CLOG_GROUP_ID, CA_BUTTON_CHILD_ID);
+			Widget button = client.getWidget(CA_BUTTON_COMP_ID);
 			if (button != null) button.setHidden(true);
 			replaceHeaderContent();
 			createSwapButton();
@@ -502,7 +502,7 @@ public class CLog {
 		Widget itemContainer = client.getWidget(ITEM_CONTAINER_COMP_ID);
 		if (itemContainer == null) return;
 
-		Widget scrollbar = client.getWidget(CLOG_GROUP_ID, SCROLLBAR_CHILD_ID);
+		Widget scrollbar = client.getWidget(CA_BUTTON_COMP_ID);
 		if (scrollbar == null) return;
 
 		itemContainer.setScrollHeight(currentHeight);
