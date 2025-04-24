@@ -83,7 +83,7 @@ public class WidgetUtil
 	 * @param childIndex The index of the target child widget
 	 * @param consumer The consumer to be invoked
 	 */
-	public static void applyToChild(Widget widget, int componentId, int childIndex, Consumer<Widget> consumer)
+	public static void applyToChild(Widget widget, int childIndex, Consumer<Widget> consumer)
 	{
 		if (widget == null) return;
 
