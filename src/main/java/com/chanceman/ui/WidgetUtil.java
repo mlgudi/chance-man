@@ -12,13 +12,15 @@ public class WidgetUtil
 {
 
 	/**
-	 * Returns the Widget children of the given type
+	 * <p>Returns the Widget children of the given type.</p>
+	 * <p>If the parent is null, or the child array is null, an empty array is returned.</p>
 	 * @param widget The parent Widget
 	 * @param childType The child type
 	 * @return The Widget children
 	 */
-	private static Widget[] getChildren(Widget widget, ChildType childType)
+	public static Widget[] getChildren(Widget widget, ChildType childType)
 	{
+		if (widget == null) return new Widget[0];
 		Widget[] children = null;
 		switch (childType)
 		{
@@ -35,7 +37,7 @@ public class WidgetUtil
 				children = widget.getChildren();
 				break;
 		}
-		return children;
+		return children == null ? new Widget[0] : children;
 	}
 
 	/**
