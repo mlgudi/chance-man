@@ -2,22 +2,18 @@ package com.chanceman.menus;
 
 import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
-import net.runelite.api.Client;
+import com.chanceman.menus.BlightedSack;
+import net.runelite.api.*;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InventoryID;
-import net.runelite.api.ItemContainer;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.eventbus.Subscribe;
-import net.runelite.api.EnumComposition;
-import net.runelite.api.EnumID;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Arrays;
+import java.util.*;
 
 @Singleton
 public class Restrictions
@@ -47,6 +43,14 @@ public class Restrictions
 	{
 		WorldPoint lp = client.getLocalPlayer().getWorldLocation();
 		return FOUNTAIN_OF_RUNE_AREA.contains(lp);
+	}
+
+	private boolean isInSpecialWorld()
+	{
+		EnumSet<WorldType> worldTypes = client.getWorldType();
+		return (worldTypes.contains(WorldType.LAST_MAN_STANDING)
+				|| worldTypes.contains(WorldType.PVP_ARENA));
+
 	}
 
 	public static final int SPELL_REQUIREMENT_OVERLAY_NORMAL = 14287050;
@@ -126,9 +130,25 @@ public class Restrictions
 		return enabledSkillOps.contains(op);
 	}
 
-	public boolean isSpellOpEnabled()
+	public boolean isSpellOpEnabled(String spellName)
 	{
-		if (isInFountainArea()) { return true; }
+		if (isInFountainArea() || isInSpecialWorld()) { return true; }
+		BlightedSack sack = BlightedSack.fromSpell(spellName);
+		if (sack != null)
+		{
+			int sackId = sack.getSackItemId();
+			ItemContainer inv = client.getItemContainer(InventoryID.INV);
+			if (inv != null && unlockedItemsManager.isUnlocked(sackId))
+			{
+				for (Item item : inv.getItems())
+				{
+					if (item.getId() == sackId)
+					{
+						return true;
+					}
+				}
+			}
+		}
 
 		Widget spellOverlay = client.getWidget(SPELL_REQUIREMENT_OVERLAY_NORMAL);
 		if (spellOverlay != null) return processChildren(spellOverlay);

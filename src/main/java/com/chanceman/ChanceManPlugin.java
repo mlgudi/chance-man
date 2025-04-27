@@ -104,6 +104,7 @@ public class ChanceManPlugin extends Plugin
                 unlockedItemsManager, rolledItemsManager, itemManager, allTradeableItems, clientThread,
                 rollAnimationManager
         );
+        rollAnimationManager.setChanceManPanel(chanceManPanel);
         BufferedImage icon = ImageUtil.loadImageResource(
                 getClass(), "/net/runelite/client/plugins/chanceman/icon.png");
         navButton = NavigationButton.builder()
@@ -207,10 +208,6 @@ public class ChanceManPlugin extends Plugin
         }
 
         rollAnimationManager.process();
-        if (chanceManPanel != null)
-        {
-            SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
-        }
     }
 
     @Subscribe

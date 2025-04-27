@@ -5,12 +5,12 @@ import lombok.Setter;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.ItemComposition;
-import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.callback.ClientThread;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.swing.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -25,10 +25,10 @@ public class RollAnimationManager
 {
     @Inject private ItemManager itemManager;
     @Inject private Client client;
-    @Inject private ChatMessageManager chatMessageManager;
     @Inject private ClientThread clientThread;
     @Inject private UnlockedItemsManager unlockedManager;
     @Inject private ChanceManOverlay overlay;
+    @Setter private ChanceManPanel chanceManPanel;
 
     @Setter private HashSet<Integer> allTradeableItems;
     private final Queue<Integer> rollQueue = new ConcurrentLinkedQueue<>();
@@ -92,6 +92,9 @@ public class RollAnimationManager
                         + " by rolling " + "<col=ff0000>" + getItemName(queuedItemId) + "</col>";
             }
             client.addChatMessage(ChatMessageType.GAMEMESSAGE, "", message, null);
+            if (chanceManPanel != null) {
+                SwingUtilities.invokeLater(() -> chanceManPanel.updatePanel());
+            }
         });
         setManualRoll(false);
         isRolling = false;
