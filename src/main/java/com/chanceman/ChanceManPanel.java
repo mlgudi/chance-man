@@ -7,7 +7,14 @@ import net.runelite.client.ui.PluginPanel;
 import net.runelite.client.util.LinkBrowser;
 
 import javax.swing.*;
+import javax.swing.DefaultListModel;
+import javax.swing.JList;
+import javax.swing.JScrollPane;
+import javax.swing.ListSelectionModel;
+import javax.swing.ListCellRenderer;
+import javax.swing.SwingUtilities;
 import javax.swing.border.*;
+import java.awt.Component;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -15,7 +22,6 @@ import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 import java.util.function.Consumer;
-import javax.swing.JColorChooser;
 
 /**
  * Panel for displaying rolled and unlocked items.
@@ -38,8 +44,10 @@ public class ChanceManPanel extends PluginPanel
 
     // CardLayout panel to show either Rolled or Unlocked view
     private final JPanel centerCardPanel = new JPanel(new CardLayout());
-    private final JPanel rolledContentPanel = new JPanel();
-    private final JPanel unlockedContentPanel = new JPanel();
+    private final DefaultListModel<Integer> rolledModel = new DefaultListModel<>();
+    private final JList<Integer> rolledList = new JList<>(rolledModel);
+    private final DefaultListModel<Integer> unlockedModel = new DefaultListModel<>();
+    private final JList<Integer> unlockedList = new JList<>(unlockedModel);
 
     // View selection row: 3 buttons (swap, filter unlocked-not-rolled, filter unlocked-and-rolled)
     private final JButton swapViewButton = new JButton("🔄");
@@ -66,9 +74,6 @@ public class ChanceManPanel extends PluginPanel
 
     // Default color for item text
     private final Color defaultItemTextColor = new Color(220, 220, 220);
-
-    // Map to hold custom text colors for specific items (key: itemId, value: chosen Color)
-    private final Map<Integer, Color> itemTextColorMap = new HashMap<>();
 
     /**
      * Constructs a ChanceManPanel.
@@ -177,14 +182,27 @@ public class ChanceManPanel extends PluginPanel
         add(topPanel, BorderLayout.NORTH);
 
         // ========== CENTER PANEL (CardLayout) ==========
-        rolledContentPanel.setLayout(new BoxLayout(rolledContentPanel, BoxLayout.Y_AXIS));
-        rolledContentPanel.setBackground(new Color(60, 63, 65));
+        rolledList.setCellRenderer(new ItemCellRenderer());
+        rolledList.setVisibleRowCount(10);
+        rolledList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane rolledScroll = new JScrollPane(
+                rolledList,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        rolledScroll.setPreferredSize(new Dimension(250, 300));
+        JPanel rolledContainer = createTitledPanel("Rolled Items", rolledScroll);
 
-        unlockedContentPanel.setLayout(new BoxLayout(unlockedContentPanel, BoxLayout.Y_AXIS));
-        unlockedContentPanel.setBackground(new Color(60, 63, 65));
-
-        JPanel rolledContainer = createTitledPanel("Rolled Items", rolledContentPanel);
-        JPanel unlockedContainer = createTitledPanel("Unlocked Items", unlockedContentPanel);
+        unlockedList.setCellRenderer(new ItemCellRenderer());
+        unlockedList.setVisibleRowCount(10);
+        unlockedList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane unlockedScroll = new JScrollPane(
+                unlockedList,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        unlockedScroll.setPreferredSize(new Dimension(250, 300));
+        JPanel unlockedContainer = createTitledPanel("Unlocked Items", unlockedScroll);
 
         centerCardPanel.add(rolledContainer, "ROLLED");
         centerCardPanel.add(unlockedContainer, "UNLOCKED");
@@ -225,6 +243,65 @@ public class ChanceManPanel extends PluginPanel
     }
 
     /**
+     * Renders each item ID as an icon + name in the JList.
+     */
+    private class ItemCellRenderer extends JPanel implements ListCellRenderer<Integer>
+    {
+        private final JLabel iconLabel = new JLabel();
+        private final JLabel nameLabel = new JLabel();
+
+        public ItemCellRenderer()
+        {
+            setLayout(new BorderLayout(5, 0));
+            setOpaque(true);
+            add(iconLabel, BorderLayout.WEST);
+            add(nameLabel, BorderLayout.CENTER);
+            nameLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
+        }
+
+        @Override
+        public Component getListCellRendererComponent(JList<? extends Integer> list,
+                                                      Integer itemId,
+                                                      int index,
+                                                      boolean isSelected,
+                                                      boolean cellHasFocus)
+        {
+            // icon
+            iconLabel.setIcon(getItemIcon(itemId));
+
+            // name (async load if missing)
+            String name = itemNameCache.get(itemId);
+            if (name == null)
+            {
+                nameLabel.setText("Loading…");
+                getItemNameAsync(itemId, n ->
+                {
+                    itemNameCache.put(itemId, n);
+                    list.repaint(list.getCellBounds(index, index));
+                });
+            }
+            else
+            {
+                nameLabel.setText(name);
+            }
+
+            // selection styling
+            if (isSelected)
+            {
+                setBackground(list.getSelectionBackground());
+                setForeground(list.getSelectionForeground());
+            }
+            else
+            {
+                setBackground(new Color(60, 63, 65));
+                nameLabel.setForeground(defaultItemTextColor);
+            }
+
+            return this;
+        }
+    }
+
+    /**
      * Toggles between Unlocked view and Rolled view.
      */
     private void toggleView()
@@ -246,10 +323,9 @@ public class ChanceManPanel extends PluginPanel
      * Creates a titled container panel that wraps the given content panel.
      *
      * @param title        The title to display on the border.
-     * @param contentPanel The panel to wrap.
      * @return The container panel.
      */
-    private JPanel createTitledPanel(String title, JPanel contentPanel)
+    private JPanel createTitledPanel(String title, Component content)
     {
         JPanel container = new JPanel(new BorderLayout());
         container.setOpaque(false);
@@ -260,16 +336,8 @@ public class ChanceManPanel extends PluginPanel
         titled.setTitleColor(new Color(200, 200, 200));
         container.setBorder(new CompoundBorder(titled, empty));
 
-        JScrollPane scrollPane = new JScrollPane(
-                contentPanel,
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
-                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER
-        );
-        scrollPane.setOpaque(false);
-        scrollPane.getViewport().setOpaque(false);
-        scrollPane.setPreferredSize(new Dimension(250, 300));
-
-        container.add(scrollPane, BorderLayout.CENTER);
+        // Directly add the passed-in component (which may itself be a JScrollPane)
+        container.add(content, BorderLayout.CENTER);
         return container;
     }
 
@@ -498,147 +566,26 @@ public class ChanceManPanel extends PluginPanel
             int rolledCount = rolledItemsManager.getRolledItems().size();
             int unlockedCount = unlockedItemsManager.getUnlockedItems().size();
 
-            // Switch to the Swing thread to update the UI
             SwingUtilities.invokeLater(() ->
             {
-                // If we're showing unlocked, show "Unlocked: X/Y"; otherwise "Rolled: X/Y"
-                if (showingUnlocked)
+                rolledModel.clear();
+                for (int id : filteredRolled)
                 {
-                    countLabel.setText("Unlocked: " + unlockedCount + "/" + totalTrackable);
-                }
-                else
-                {
-                    countLabel.setText("Rolled: " + rolledCount + "/" + totalTrackable);
+                    rolledModel.addElement(id);
                 }
 
-                // Determine which panel is active (rolled or unlocked)
-                JPanel activeContentPanel = showingUnlocked ? unlockedContentPanel : rolledContentPanel;
-                activeContentPanel.removeAll();
-
-                // Decide which list of item IDs to show
-                List<Integer> filteredIds = showingUnlocked ? filteredUnlocked : filteredRolled;
-                for (int i = 0; i < filteredIds.size(); i++)
+                unlockedModel.clear();
+                for (int id : filteredUnlocked)
                 {
-                    int itemId = filteredIds.get(i);
-                    activeContentPanel.add(createHorizontalItemPanel(itemId));
-
-                    // Only add a vertical strut if this isn't the last item
-                    if (i < filteredIds.size() - 1)
-                    {
-                        activeContentPanel.add(Box.createVerticalStrut(3));
-                    }
+                    unlockedModel.addElement(id);
                 }
 
-                activeContentPanel.revalidate();
-                activeContentPanel.repaint();
+                int total = allTradeableItems.size();
+                countLabel.setText(showingUnlocked
+                        ? "Unlocked: " + unlockedModel.size() + "/" + total
+                        : "Rolled:   " + rolledModel.size()   + "/" + total);
             });
         });
-    }
-
-    /**
-     * Creates a horizontal panel with an icon on the left and item name on the right.
-     * Also sets a hover tooltip on both the panel and the icon to display the full item name.
-     *
-     * @param itemId The item ID.
-     * @return The horizontal item panel.
-     */
-    private JPanel createHorizontalItemPanel(int itemId)
-    {
-        // Use BoxLayout on the X axis for a tight horizontal layout
-        JPanel itemPanel = new JPanel();
-        itemPanel.setLayout(new BoxLayout(itemPanel, BoxLayout.X_AXIS));
-        itemPanel.setOpaque(false);
-        itemPanel.setAlignmentX(LEFT_ALIGNMENT);
-
-        // Create and add the icon label with fixed size
-        ImageIcon icon = getItemIcon(itemId);
-        JLabel iconLabel = new JLabel(icon != null ? icon : new ImageIcon());
-        iconLabel.setPreferredSize(new Dimension(32, 32));
-        iconLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
-        itemPanel.add(iconLabel);
-
-        // Add a small horizontal gap between the icon and the name label
-        itemPanel.add(Box.createHorizontalStrut(5));
-
-        // Determine the text color for this item: either a custom color or the default
-        Color textColor = itemTextColorMap.getOrDefault(itemId, defaultItemTextColor);
-
-        // Create and add the name label with the chosen text color
-        String cachedName = itemNameCache.get(itemId);
-        JLabel nameLabel = new JLabel(cachedName != null ? cachedName : "Loading...");
-        nameLabel.setForeground(textColor);
-        nameLabel.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        nameLabel.setAlignmentY(Component.CENTER_ALIGNMENT);
-        itemPanel.add(nameLabel);
-
-        // If the item name is not cached, fetch it asynchronously
-        if (cachedName == null)
-        {
-            itemPanel.setToolTipText("Loading...");
-            iconLabel.setToolTipText("Loading...");
-            getItemNameAsync(itemId, name -> {
-                itemNameCache.put(itemId, name);
-                nameLabel.setText(name);
-                // Update tooltips for both the panel and the icon
-                itemPanel.setToolTipText(name);
-                iconLabel.setToolTipText(name);
-                nameLabel.repaint();
-            });
-        }
-        else
-        {
-            itemPanel.setToolTipText(cachedName);
-            iconLabel.setToolTipText(cachedName);
-        }
-
-        // Constrain the panel's height to match the icon's height
-        itemPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
-
-        // Add a mouse listener to show the context menu on right-click for this specific item
-        itemPanel.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mousePressed(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    showItemTextColorPopup(e, itemId, nameLabel);
-                }
-            }
-            @Override
-            public void mouseReleased(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    showItemTextColorPopup(e, itemId, nameLabel);
-                }
-            }
-        });
-
-        return itemPanel;
-    }
-
-    private void showItemTextColorPopup(java.awt.event.MouseEvent e, int itemId, JLabel label) {
-        JPopupMenu popup = new JPopupMenu();
-
-        JMenuItem changeColorItem = new JMenuItem("Change Text Color");
-        JMenuItem resetColorItem = new JMenuItem("Reset Color");
-
-        changeColorItem.addActionListener(ev -> {
-            // Get current color or default
-            Color currentColor = itemTextColorMap.getOrDefault(itemId, defaultItemTextColor);
-            Color chosen = JColorChooser.showDialog(ChanceManPanel.this, "Choose Text Color", currentColor);
-            if (chosen != null) {
-                // Save the chosen color and update the label
-                itemTextColorMap.put(itemId, chosen);
-                label.setForeground(chosen);
-            }
-        });
-
-        resetColorItem.addActionListener(ev -> {
-            // Remove any custom color for this item and revert to default
-            itemTextColorMap.remove(itemId);
-            label.setForeground(defaultItemTextColor);
-        });
-
-        popup.add(changeColorItem);
-        popup.add(resetColorItem);
-        popup.show(e.getComponent(), e.getX(), e.getY());
     }
 
     /**

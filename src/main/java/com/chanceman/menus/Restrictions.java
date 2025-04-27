@@ -2,7 +2,6 @@ package com.chanceman.menus;
 
 import com.chanceman.ChanceManPlugin;
 import com.chanceman.UnlockedItemsManager;
-import com.chanceman.menus.BlightedSack;
 import net.runelite.api.*;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
@@ -45,11 +44,10 @@ public class Restrictions
 		return FOUNTAIN_OF_RUNE_AREA.contains(lp);
 	}
 
-	private boolean isInSpecialWorld()
+	private boolean isInLMS()
 	{
 		EnumSet<WorldType> worldTypes = client.getWorldType();
-		return (worldTypes.contains(WorldType.LAST_MAN_STANDING)
-				|| worldTypes.contains(WorldType.PVP_ARENA));
+		return (worldTypes.contains(WorldType.LAST_MAN_STANDING));
 
 	}
 
@@ -132,7 +130,7 @@ public class Restrictions
 
 	public boolean isSpellOpEnabled(String spellName)
 	{
-		if (isInFountainArea() || isInSpecialWorld()) { return true; }
+		if (isInFountainArea() || isInLMS()) { return true; }
 		BlightedSack sack = BlightedSack.fromSpell(spellName);
 		if (sack != null)
 		{
