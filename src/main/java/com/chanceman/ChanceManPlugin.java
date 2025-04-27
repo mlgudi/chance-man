@@ -77,6 +77,7 @@ public class ChanceManPlugin extends Plugin
     @Getter private final HashSet<Integer> allTradeableItems = new LinkedHashSet<>();
     private static final int GE_SEARCH_BUILD_SCRIPT = 751;
     private boolean tradeableItemsInitialized = false;
+    private boolean featuresActive = false;
 
     @Provides
     ChanceManConfig provideConfig(ConfigManager configManager)
@@ -87,6 +88,22 @@ public class ChanceManPlugin extends Plugin
     @Override
     protected void startUp() throws Exception
     {
+        eventBus.register(this);
+        if (isNormalWorld()) enableFeatures();
+    }
+
+    @Override
+    protected void shutDown() throws Exception
+    {
+        if (featuresActive) disableFeatures();
+        eventBus.unregister(this);
+    }
+
+    private void enableFeatures()
+    {
+        if (featuresActive) return;
+        featuresActive = true;
+
         getInjector().getInstance(ActionHandler.class).startUp();
         eventBus.register(accountManager);
         overlayManager.add(chanceManOverlay);
@@ -95,36 +112,42 @@ public class ChanceManPlugin extends Plugin
         rolledItemsManager.setExecutor(fileExecutor);
         rollAnimationManager.startUp();
 
-        if (!isNormalWorld())
-        {
-            return;
-        }
-
         chanceManPanel = new ChanceManPanel(
-                unlockedItemsManager, rolledItemsManager, itemManager, allTradeableItems, clientThread,
+                unlockedItemsManager,
+                rolledItemsManager,
+                itemManager,
+                allTradeableItems,
+                clientThread,
                 rollAnimationManager
         );
         rollAnimationManager.setChanceManPanel(chanceManPanel);
+
         BufferedImage icon = ImageUtil.loadImageResource(
-                getClass(), "/net/runelite/client/plugins/chanceman/icon.png");
+                getClass(), "/net/runelite/client/plugins/chanceman/icon.png"
+        );
         navButton = NavigationButton.builder()
-                                    .tooltip("ChanceMan")
-                                    .icon(icon)
-                                    .priority(5)
-                                    .panel(chanceManPanel)
-                                    .build();
+                .tooltip("ChanceMan")
+                .icon(icon)
+                .priority(5)
+                .panel(chanceManPanel)
+                .build();
         clientToolbar.addNavigation(navButton);
 
         accountManager.init();
     }
 
-    @Override
-    protected void shutDown() throws Exception
+    private void disableFeatures()
     {
+        if (!featuresActive) return;
+        featuresActive = false;
+
         eventBus.unregister(accountManager);
+        getInjector().getInstance(ActionHandler.class).shutDown();
+
         if (clientToolbar != null && navButton != null)
         {
             clientToolbar.removeNavigation(navButton);
+            navButton = null;
         }
         if (overlayManager != null)
         {
@@ -137,16 +160,21 @@ public class ChanceManPlugin extends Plugin
         if (fileExecutor != null)
         {
             fileExecutor.shutdownNow();
+            fileExecutor = null;
         }
-        getInjector().getInstance(ActionHandler.class).shutDown();
 
-        // Reset plugin state for a fresh initialization on restart.
+        // reset panel/tradeable state
         chanceManPanel = null;
-        navButton = null;
-        fileExecutor = null;
         allTradeableItems.clear();
         tradeableItemsInitialized = false;
         accountManager.reset();
+    }
+
+    @Subscribe
+    public void onWorldChanged(WorldChanged event)
+    {
+        if (isNormalWorld()) enableFeatures();
+        else disableFeatures();
     }
 
     /**
@@ -180,6 +208,7 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onConfigChanged(net.runelite.client.events.ConfigChanged event)
     {
+        if (!featuresActive) return;
         if (!event.getGroup().equals("chanceman")) { return; }
         if (event.getKey().equals("freeToPlay")) { refreshTradeableItems(); }
         if (event.getKey().equals("enableFlatpacks")) { refreshTradeableItems(); }
@@ -190,6 +219,7 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     private void onAccountChanged(AccountChanged event)
     {
+        if (!featuresActive) return;
         unlockedItemsManager.loadUnlockedItems();
         rolledItemsManager.loadRolledItems();
         if (chanceManPanel != null)
@@ -201,6 +231,7 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onGameTick(GameTick event)
     {
+        if (!featuresActive) return;
         if (!tradeableItemsInitialized && client.getGameState() == GameState.LOGGED_IN)
         {
             refreshTradeableItems();
@@ -213,6 +244,7 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onScriptPostFired(ScriptPostFired event)
     {
+        if (!featuresActive) return;
         if (event.getScriptId() == GE_SEARCH_BUILD_SCRIPT) { killSearchResults(); }
     }
 
@@ -239,8 +271,8 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onItemSpawned(ItemSpawned event)
     {
+        if (!featuresActive) return;
         if (!accountManager.ready()) return;
-        if (!isNormalWorld()) return;
 
         TileItem tileItem = (TileItem) event.getItem();
         int itemId = tileItem.getId();
@@ -273,8 +305,8 @@ public class ChanceManPlugin extends Plugin
     @Subscribe
     public void onItemContainerChanged(ItemContainerChanged event)
     {
+        if (!featuresActive) return;
         if (!accountManager.ready()) return;
-        if (!isNormalWorld()) return;
 
         if (event.getContainerId() == 93)
         {
