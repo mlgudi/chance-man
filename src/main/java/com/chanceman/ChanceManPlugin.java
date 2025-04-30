@@ -211,7 +211,7 @@ public class ChanceManPlugin extends Plugin
         if (!featuresActive) return;
         if (!event.getGroup().equals("chanceman")) { return; }
         if (event.getKey().equals("freeToPlay")) { refreshTradeableItems(); }
-        if (event.getKey().equals("enableFreeToPlayTradeOnlyItems")) { refreshTradeableItems(); }
+        if (event.getKey().equals("includeF2PTradeOnlyItems")) { refreshTradeableItems(); }
         if (event.getKey().equals("enableFlatpacks")) { refreshTradeableItems(); }
         if (event.getKey().equals("enableItemSets")) { refreshTradeableItems(); }
         if (event.getKey().equals("requireWeaponPoison")) { refreshTradeableItems(); }

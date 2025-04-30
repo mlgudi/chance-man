@@ -19,16 +19,13 @@ public interface ChanceManConfig extends Config
     }
 
     @ConfigItem(
-            keyName = "enableFreeToPlayTradeOnlyItems",
-            name = "Roll F2P Trade Only Items",
-            description = "Include items only obtainable through trade or Grand Exchange on F2P servers." +
-                    " Only applies if Free To Play Mode is active.",
+            keyName = "includeF2PTradeOnlyItems",
+            name = "Include F2P trade-only items",
+            description = "When Free-to-Play mode is enabled, also roll items that can only " +
+                    "be obtained via trading or the Grand Exchange.",
             position = 2
     )
-    default boolean enableFreeToPlayTradeOnlyItems()
-    {
-        return false;
-    }
+    default boolean includeF2PTradeOnlyItems() { return false; }
 
     @ConfigItem(
             keyName = "enableItemSets",
