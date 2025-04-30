@@ -562,10 +562,6 @@ public class ChanceManPanel extends PluginPanel
                 filteredRolled.removeIf(id -> !unlockedItemsManager.getUnlockedItems().contains(id));
             }
 
-            int totalTrackable = allTradeableItems.size();
-            int rolledCount = rolledItemsManager.getRolledItems().size();
-            int unlockedCount = unlockedItemsManager.getUnlockedItems().size();
-
             SwingUtilities.invokeLater(() ->
             {
                 rolledModel.clear();
@@ -583,7 +579,7 @@ public class ChanceManPanel extends PluginPanel
                 int total = allTradeableItems.size();
                 countLabel.setText(showingUnlocked
                         ? "Unlocked: " + unlockedModel.size() + "/" + total
-                        : "Rolled:   " + rolledModel.size()   + "/" + total);
+                        : "Rolled:  " + rolledModel.size()   + "/" + total);
             });
         });
     }

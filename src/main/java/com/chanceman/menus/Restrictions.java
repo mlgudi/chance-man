@@ -6,6 +6,7 @@ import net.runelite.api.*;
 import net.runelite.api.coords.WorldArea;
 import net.runelite.api.coords.WorldPoint;
 import net.runelite.api.gameval.InventoryID;
+import net.runelite.api.gameval.ItemID;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.widgets.Widget;
 import net.runelite.client.eventbus.Subscribe;
@@ -136,7 +137,7 @@ public class Restrictions
 		{
 			int sackId = sack.getSackItemId();
 			ItemContainer inv = client.getItemContainer(InventoryID.INV);
-			if (inv != null && unlockedItemsManager.isUnlocked(sackId))
+			if (inv != null	&& (sackId == ItemID.BLIGHTED_SACK_SURGE || unlockedItemsManager.isUnlocked(sackId)))
 			{
 				for (Item item : inv.getItems())
 				{
