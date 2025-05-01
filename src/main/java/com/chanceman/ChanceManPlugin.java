@@ -209,12 +209,17 @@ public class ChanceManPlugin extends Plugin
     public void onConfigChanged(net.runelite.client.events.ConfigChanged event)
     {
         if (!featuresActive) return;
-        if (!event.getGroup().equals("chanceman")) { return; }
-        if (event.getKey().equals("freeToPlay")) { refreshTradeableItems(); }
-        if (event.getKey().equals("includeF2PTradeOnlyItems")) { refreshTradeableItems(); }
-        if (event.getKey().equals("enableFlatpacks")) { refreshTradeableItems(); }
-        if (event.getKey().equals("enableItemSets")) { refreshTradeableItems(); }
-        if (event.getKey().equals("requireWeaponPoison")) { refreshTradeableItems(); }
+        if (!event.getGroup().equals("chanceman")) return;
+        switch (event.getKey())
+        {
+            case "freeToPlay":
+            case "includeF2PTradeOnlyItems":
+            case "enableFlatpacks":
+            case "enableItemSets":
+            case "requireWeaponPoison":
+                refreshTradeableItems();
+                break;
+        }
     }
 
     @Subscribe
