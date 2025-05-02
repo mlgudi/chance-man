@@ -58,7 +58,7 @@ public interface ChanceManConfig extends Config
     @ConfigItem(
             keyName = "enableRollSounds",
             name = "Enable Roll Sounds",
-            description = "Toggle tick & high‐alch sounds during rolls",
+            description = "Toggle Roll Sound",
             position = 6
     )
     default boolean enableRollSounds() { return true; }
