@@ -1,13 +1,18 @@
 package com.chanceman;
 
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.client.audio.AudioPlayer;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.ui.overlay.Overlay;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
+import javax.sound.sampled.LineUnavailableException;
+import javax.sound.sampled.UnsupportedAudioFileException;
+
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
 import java.awt.image.BufferedImage;
@@ -20,9 +25,11 @@ import java.util.function.Supplier;
  * Overlay for displaying the roll animation.
  * It renders a scrolling set of item icons and highlights the final item.
  */
-@Singleton
+@Singleton @Slf4j
 public class ChanceManOverlay extends Overlay
 {
+    @Inject private AudioPlayer audioPlayer;
+    @Inject private ChanceManConfig config;
     private final Client client;
     private final ItemManager itemManager;
 
@@ -35,9 +42,9 @@ public class ChanceManOverlay extends Overlay
     // Spin parameters
     private float rollOffset = 0f;
     private float currentSpeed;
-    private final float initialSpeed = 1200f;   // start speed (px/sec)
-    private final float deceleration = 900f;    // px/sec^2
-    private final float minSpeed = 300f;        // never go below this speed
+    private final float initialSpeed = 1000f;   // start speed (px/sec)
+    private final float deceleration = 750f;    // px/sec^2
+    private final float minSpeed = 100f;        // never go below this speed
 
     // Icon layout
     private final int iconCount = 5;
@@ -83,6 +90,19 @@ public class ChanceManOverlay extends Overlay
      */
     public void startRollAnimation(int dummy, int rollDurationMs, Supplier<Integer> randomLockedItemSupplier)
     {
+        if (config.enableRollSounds())
+        {
+            try
+            {
+                audioPlayer.play(ChanceManOverlay.class,
+                        "/net/runelite/client/plugins/chanceman/tick.wav",
+                        0.0f);
+            }
+            catch (IOException | UnsupportedAudioFileException | LineUnavailableException ex)
+            {
+                log.warn("ChanceMan: failed to play tick.wav", ex);
+            }
+        }
         this.rollDuration = rollDurationMs;
         this.rollStartTime = System.currentTimeMillis();
         this.rollOffset = 0f;

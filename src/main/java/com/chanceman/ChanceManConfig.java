@@ -54,4 +54,12 @@ public interface ChanceManConfig extends Config
             position = 5
     )
     default boolean requireWeaponPoison() { return true; }
+
+    @ConfigItem(
+            keyName = "enableRollSounds",
+            name = "Enable Roll Sounds",
+            description = "Toggle tick & high‐alch sounds during rolls",
+            position = 6
+    )
+    default boolean enableRollSounds() { return true; }
 }

@@ -34,7 +34,7 @@ public class RollAnimationManager
     private final Queue<Integer> rollQueue = new ConcurrentLinkedQueue<>();
     private ExecutorService executor = Executors.newSingleThreadExecutor();
     private volatile boolean isRolling = false;
-    private final int rollDuration = 4000; // Continuous phase duration (ms)
+    private final int rollDuration = 1700; // Continuous phase duration (ms)
     private final int highlightDuration = 1500; // Highlight phase (ms)
     private final Random random = new Random();
 
