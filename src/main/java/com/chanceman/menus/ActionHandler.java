@@ -188,7 +188,7 @@ public class ActionHandler {
 		boolean enabled;
 		if (enabledUiOpen()) {
 			enabled = option.startsWith("Deposit") || option.startsWith("Examine") || option.startsWith("Withdraw")
-					|| option.startsWith("Release");
+					|| option.startsWith("Release") || option.startsWith("Destroy");
 		} else {
 			enabled = !disabledActions.contains(action);
 		}

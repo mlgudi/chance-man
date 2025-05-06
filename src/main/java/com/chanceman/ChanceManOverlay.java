@@ -95,7 +95,7 @@ public class ChanceManOverlay extends Overlay
             try
             {
                 audioPlayer.play(ChanceManOverlay.class,
-                        "/net/runelite/client/plugins/chanceman/tick.wav",
+                        "/com/chanceman/tick.wav",
                         0.0f);
             }
             catch (IOException | UnsupportedAudioFileException | LineUnavailableException ex)
