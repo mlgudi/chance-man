@@ -42,9 +42,9 @@ public class ChanceManOverlay extends Overlay
     // Spin parameters
     private float rollOffset = 0f;
     private float currentSpeed;
-    private final float initialSpeed = 1000f;   // start speed (px/sec)
-    private final float deceleration = 750f;    // px/sec^2
-    private final float minSpeed = 100f;        // never go below this speed
+    private final float initialSpeed = 975f;   // start speed (px/sec)
+    private final float deceleration = 425f;    // px/sec^2
+    private final float minSpeed = 120f;        // never go below this speed
 
     // Icon layout
     private final int iconCount = 5;
