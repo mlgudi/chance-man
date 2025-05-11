@@ -1,7 +1,7 @@
 package com.chanceman.menus;
 
 import com.chanceman.ChanceManPlugin;
-import com.chanceman.UnlockedItemsManager;
+import com.chanceman.managers.UnlockedItemsManager;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Client;

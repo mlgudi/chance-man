@@ -1,5 +1,7 @@
-package com.chanceman;
+package com.chanceman.managers;
 
+import com.chanceman.ChanceManOverlay;
+import com.chanceman.ChanceManPanel;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.ChatMessageType;

@@ -1,7 +1,7 @@
 package com.chanceman.account;
 
-import com.chanceman.RolledItemsManager;
-import com.chanceman.UnlockedItemsManager;
+import com.chanceman.managers.RolledItemsManager;
+import com.chanceman.managers.UnlockedItemsManager;
 import lombok.Getter;
 import lombok.Setter;
 import net.runelite.api.Client;

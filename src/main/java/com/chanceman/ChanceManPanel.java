@@ -1,5 +1,8 @@
 package com.chanceman;
 
+import com.chanceman.managers.RollAnimationManager;
+import com.chanceman.managers.RolledItemsManager;
+import com.chanceman.managers.UnlockedItemsManager;
 import net.runelite.api.ItemComposition;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.game.ItemManager;

@@ -1,4 +1,4 @@
-package com.chanceman;
+package com.chanceman.managers;
 
 import com.chanceman.account.AccountManager;
 import com.google.gson.Gson;
@@ -18,20 +18,24 @@ import java.util.concurrent.ExecutorService;
 import static net.runelite.client.RuneLite.RUNELITE_DIR;
 
 /**
- * Manages the set of rolled items with atomic persistence.
- * Provides thread-safe operations for marking items as rolled,
- * loading from and saving to disk with backups and atomic moves.
+ * Manages the set of unlocked items with robust, atomic persistence and 10‑file backup rotation.
  */
 @Slf4j
 @Singleton
-public class RolledItemsManager
+public class UnlockedItemsManager
 {
     private static final int MAX_BACKUPS = 10;
-    private final Set<Integer> rolledItems = Collections.synchronizedSet(new LinkedHashSet<>());
+
+    private final Set<Integer> unlockedItems = Collections.synchronizedSet(new LinkedHashSet<>());
 
     @Inject private AccountManager accountManager;
     @Inject private Gson gson;
     @Setter private ExecutorService executor;
+
+    public boolean ready()
+    {
+        return accountManager.getPlayerName() != null;
+    }
 
     /**
      * Atomically moves source→target, but if ATOMIC_MOVE fails retries a normal move with REPLACE_EXISTING.
@@ -44,7 +48,7 @@ public class RolledItemsManager
         }
         catch (AtomicMoveNotSupportedException | AccessDeniedException ex)
         {
-            // remove ATOMIC_MOVE, add REPLACE_EXISTING
+            // retry without ATOMIC_MOVE but with REPLACE_EXISTING
             Set<CopyOption> fallback = new HashSet<>(Arrays.asList(opts));
             fallback.remove(StandardCopyOption.ATOMIC_MOVE);
             fallback.add(StandardCopyOption.REPLACE_EXISTING);
@@ -52,11 +56,6 @@ public class RolledItemsManager
         }
     }
 
-    /**
-     * Builds the file path for the current account's rolled-items JSON file.
-     *
-     * @return path to the rolled items JSON file
-     */
     private Path getFilePath() throws IOException
     {
         String name = accountManager.getPlayerName();
@@ -68,45 +67,30 @@ public class RolledItemsManager
                 .resolve("chanceman")
                 .resolve(name);
         Files.createDirectories(dir);
-        return dir.resolve("chanceman_rolled.json");
+        return dir.resolve("chanceman_unlocked.json");
     }
 
-      /**
-     * Checks if an item has been rolled.
-     *
-     * @param itemId The item ID.
-     * @return true if the item has been rolled, false otherwise.
-     */
-    public boolean isRolled(int itemId)
+    public boolean isUnlocked(int itemId)
     {
-        return rolledItems.contains(itemId);
+        return unlockedItems.contains(itemId);
     }
 
-    /**
-     * Marks an item as rolled and triggers an asynchronous save.
-     *
-     * @param itemId The item ID to mark as rolled.
-     */
-    public void markRolled(int itemId)
+    public void unlockItem(int itemId)
     {
-        if (rolledItems.add(itemId))
+        if (unlockedItems.add(itemId))
         {
-            saveRolledItems();
+            saveUnlockedItems();
         }
     }
 
-    /**
-     * Loads the set of rolled items from disk into memory.
-     * If the file does not exist or is empty, initializes an empty set.
-     */
-    public void loadRolledItems()
+    public void loadUnlockedItems()
     {
-        if (accountManager.getPlayerName() == null)
+        if (!ready())
         {
             return;
         }
 
-        rolledItems.clear();
+        unlockedItems.clear();
         Path file;
         try
         {
@@ -119,8 +103,8 @@ public class RolledItemsManager
 
         if (!Files.exists(file))
         {
-            // first run: write an empty file
-            saveRolledItems();
+            // first‑run: empty set → write an empty JSON file
+            saveUnlockedItems();
             return;
         }
 
@@ -130,20 +114,16 @@ public class RolledItemsManager
                     new com.google.gson.reflect.TypeToken<Set<Integer>>() {}.getType());
             if (loaded != null)
             {
-                rolledItems.addAll(loaded);
+                unlockedItems.addAll(loaded);
             }
         }
         catch (IOException e)
         {
-            log.error("Error loading rolled items", e);
+            log.error("Error loading unlocked items", e);
         }
     }
 
-    /**
-     * Saves the current set of rolled items to disk.
-     * Uses a temporary file and backups for atomicity and data safety.
-     */
-    public void saveRolledItems()
+    public void saveUnlockedItems()
     {
         executor.submit(() ->
         {
@@ -154,13 +134,13 @@ public class RolledItemsManager
             }
             catch (IOException ioe)
             {
-                log.error("Could not resolve rolled‑items path", ioe);
+                log.error("Could not resolve file path", ioe);
                 return;
             }
 
             try
             {
-                // 1) backup current .json
+                // 1) rotate .json → .bak
                 if (Files.exists(file))
                 {
                     Path backups = file.getParent().resolve("backups");
@@ -170,7 +150,7 @@ public class RolledItemsManager
                     safeMove(file, bak,
                             StandardCopyOption.ATOMIC_MOVE,
                             StandardCopyOption.REPLACE_EXISTING);
-                    // prune old backups…
+                    // prune older backups…
                     Files.list(backups)
                             .filter(p -> p.getFileName().toString().startsWith(file.getFileName() + "."))
                             .sorted(Comparator.comparing(Path::getFileName).reversed())
@@ -182,26 +162,27 @@ public class RolledItemsManager
                 Path tmp = file.resolveSibling(file.getFileName() + ".tmp");
                 try (BufferedWriter w = Files.newBufferedWriter(tmp))
                 {
-                    gson.toJson(rolledItems, w);
+                    gson.toJson(unlockedItems, w);
                 }
 
-                // 3) atomically replace .json
+                // 3) atomically replace .json with .tmp
                 safeMove(tmp, file, StandardCopyOption.ATOMIC_MOVE);
             }
             catch (IOException e)
             {
-                log.error("Error saving rolled items", e);
+                log.error("Error saving unlocked items", e);
             }
         });
     }
 
+
     /**
-     * Retrieves an unmodifiable set of rolled item IDs.
+     * Retrieves an unmodifiable set of unlocked item IDs.
      *
-     * @return An unmodifiable set of rolled item IDs.
+     * @return An unmodifiable set of unlocked item IDs.
      */
-    public Set<Integer> getRolledItems()
+    public Set<Integer> getUnlockedItems()
     {
-        return Collections.unmodifiableSet(rolledItems);
+        return Collections.unmodifiableSet(unlockedItems);
     }
 }
