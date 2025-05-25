@@ -3,6 +3,7 @@ package com.chanceman;
 
 import com.chanceman.account.AccountChanged;
 import com.chanceman.account.AccountManager;
+import com.chanceman.drops.DropFetcher;
 import com.chanceman.filters.EnsouledHeadMapping;
 import com.chanceman.menus.ActionHandler;
 import com.chanceman.filters.ItemsFilter;
@@ -75,7 +76,8 @@ public class ChanceManPlugin extends Plugin
     @Inject
     private ItemsFilter itemsFilter;
     @Inject private DropsTabUI dropsTabUI;
-
+    @Inject private DropFetcher dropFetcher;
+    
     private ChanceManPanel chanceManPanel;
     private NavigationButton navButton;
     private ExecutorService fileExecutor;
@@ -168,6 +170,7 @@ public class ChanceManPlugin extends Plugin
             fileExecutor.shutdownNow();
             fileExecutor = null;
         }
+        dropFetcher.shutdown();
 
         // reset panel/tradeable state
         chanceManPanel = null;
