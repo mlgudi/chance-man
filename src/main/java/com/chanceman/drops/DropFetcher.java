@@ -1,9 +1,6 @@
 package com.chanceman.drops;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ItemComposition;
 import net.runelite.client.callback.ClientThread;
@@ -49,34 +46,27 @@ public class DropFetcher
     }
 
     /**
-     * Fetch drop data asynchronously.
+     * Asynchronously fetches an NPC’s drop tables via the OldSchool RuneScape Wiki’s
+     * Special:Lookup endpoint.
+     *
+     * <p>The lookup URL is constructed as
+     * `/w/Special:Lookup?type=npc&amp;id={npcId}&amp;name={fallback}#Drops`,
+     * which forces an ID‐first redirect to the exact NPC page (infobox match), and
+     * only falls back to the provided name (or a search) if no ID match is found.
+     *
+     * @param npcId  the numeric NPC ID to look up in the wiki infobox
+     * @param name   the NPC name (used as a fallback if the ID lookup fails)
+     * @param level  the NPC’s combat level (carried through into the returned data)
+     * @return a CompletableFuture that, when complete, yields an NpcDropData
+     *         containing the raw HTML‐parsed drop sections and resolved item IDs
      */
     public CompletableFuture<NpcDropData> fetch(int npcId, String name, int level)
     {
-        return CompletableFuture
-                .supplyAsync(() -> {
-                    Optional<String> maybeTitle = findTitleByNpcId(npcId);
-                    String titleToUse = maybeTitle.orElse(name);
-
-                    String urlToFetch = buildWikiUrl(titleToUse);
-                    String html;
-                    try
-                    {
-                        html = fetchHtml(urlToFetch);
-                    }
-                    catch (UncheckedIOException e)
-                    {
-                        if (maybeTitle.isPresent())
-                        {
-                            html = fetchHtml(buildWikiUrl(name));
-                            titleToUse = name;
-                        }
-                        else
-                        {
-                            throw e;
-                        }
-                    }
-                    return parseWithJsoup(npcId, titleToUse, level, html);
+        return CompletableFuture.supplyAsync(() -> {
+                    String url = buildWikiUrl(npcId, name);
+                    String html = fetchHtml(url);
+                    List<DropTableSection> sections = parseSections(html);
+                    return new NpcDropData(npcId, name, level, sections);
                 }, fetchExecutor)
 
                 .thenCompose(data -> {
@@ -106,80 +96,9 @@ public class DropFetcher
     }
 
     /**
-     * Query the OSRS Wiki search API with the NPC's numeric ID + "Drops",
-     * return the first page title if found.
+     * Extract drop table sections from HTML.
      */
-    private Optional<String> findTitleByNpcId(int npcId)
-    {
-        String api = "https://oldschool.runescape.wiki/api.php"
-                + "?action=query"
-                + "&list=search"
-                + "&srsearch=" + URLEncoder.encode(npcId + " Drops", StandardCharsets.UTF_8)
-                + "&format=json";
-
-        Request req = new Request.Builder()
-                .url(api)
-                .header("User-Agent", "RuneLite-Client/" + httpClient.hashCode())
-                .build();
-
-        try (Response res = httpClient.newCall(req).execute())
-        {
-            if (!res.isSuccessful())
-            {
-                return Optional.empty();
-            }
-            String json = res.body().string();
-            JsonParser parser = new JsonParser();
-            JsonObject root = parser.parse(json).getAsJsonObject();
-
-            JsonArray results = root
-                    .getAsJsonObject("query")
-                    .getAsJsonArray("search");
-            if (results.size() > 0)
-            {
-                String title = results
-                        .get(0)
-                        .getAsJsonObject()
-                        .get("title")
-                        .getAsString();
-                return Optional.of(title);
-            }
-        }
-        catch (IOException e)
-        {
-            log.warn("ChanceMan[{}]: ID-search failed: {}", npcId, e.toString());
-        }
-        return Optional.empty();
-    }
-
-    private String buildWikiUrl(String name)
-    {
-        String title = URLEncoder.encode(name.replace(' ', '_'), StandardCharsets.UTF_8);
-        return "https://oldschool.runescape.wiki/w/" + title + "#Drops";
-    }
-
-    private String fetchHtml(String url)
-    {
-        Request req = new Request.Builder()
-                .url(url)
-                .header("User-Agent", "RuneLite-Client/" + httpClient.hashCode())
-                .build();
-
-        try (Response res = httpClient.newCall(req).execute())
-        {
-            if (!res.isSuccessful())
-            {
-                throw new IOException("HTTP " + res.code());
-            }
-            return res.body().string();
-        }
-        catch (IOException ex)
-        {
-            throw new UncheckedIOException(ex);
-        }
-    }
-
-    private NpcDropData parseWithJsoup(int npcId, String name, int level, String html)
+    private List<DropTableSection> parseSections(String html)
     {
         Document doc = Jsoup.parse(html);
         Elements tables = doc.select("table.item-drops");
@@ -211,8 +130,35 @@ public class DropFetcher
                 sections.add(new DropTableSection(header, items));
             }
         }
+        return sections;
+    }
 
-        return new NpcDropData(npcId, name, level, sections);
+    private String buildWikiUrl(int npcId, String name)
+    {
+        String fallback = URLEncoder.encode(name.replace(' ', '_'), StandardCharsets.UTF_8);
+        return "https://oldschool.runescape.wiki/w/Special:Lookup"
+                + "?type=npc"
+                + "&id="   + npcId
+                + "&name=" + fallback
+                + "#Drops";
+    }
+
+    private String fetchHtml(String url)
+    {
+        Request req = new Request.Builder()
+                .url(url)
+                .header("User-Agent", "RuneLite-Client/" + httpClient.hashCode())
+                .build();
+        try (Response res = httpClient.newCall(req).execute())
+        {
+            if (!res.isSuccessful())
+                throw new IOException("HTTP " + res.code());
+            return res.body().string();
+        }
+        catch (IOException ex)
+        {
+            throw new UncheckedIOException(ex);
+        }
     }
 
     /**
