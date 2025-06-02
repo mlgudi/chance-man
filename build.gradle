@@ -11,12 +11,23 @@ repositories {
 		}
 	}
 	mavenCentral()
+	gradlePluginPortal()
 }
 
 def runeLiteVersion = 'latest.release'
 
+configurations {
+	core
+	thirdParty.extendsFrom core
+}
+
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
+
+	// Chance Man (DropFetcher)
+	thirdParty("org.jsoup:jsoup:1.13.1") {
+		because "chance-man: HTML parsing for NPC drop tables"
+	}
 
 	implementation 'org.jsoup:jsoup:1.13.1'
 
@@ -60,4 +71,20 @@ tasks.register('shadowJar', Jar) {
 	group = BasePlugin.BUILD_GROUP
 	archiveClassifier.set('shadow')
 	archiveFileName.set("${rootProject.name}-${project.version}-all.jar")
+}
+
+task verifyCore {
+	doLast {
+		configurations.core.asPath
+	}
+}
+
+task verifyAll {
+	doLast {
+		configurations.thirdParty.asPath
+
+		if (file("build.gradle").text =~ /(?m)^ /) {
+			throw new RuntimeException("gradle files should be indented with tabs")
+		}
+	}
 }
