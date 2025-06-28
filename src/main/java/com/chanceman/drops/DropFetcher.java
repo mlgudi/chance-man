@@ -147,7 +147,7 @@ public class DropFetcher
     {
         Request req = new Request.Builder()
                 .url(url)
-                .header("User-Agent", "RuneLite-Client/" + httpClient.hashCode())
+                .header("User-Agent", "RuneLite-ChanceMan/2.2.0")
                 .build();
         try (Response res = httpClient.newCall(req).execute())
         {
