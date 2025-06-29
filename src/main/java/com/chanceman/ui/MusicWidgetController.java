@@ -191,33 +191,39 @@ public class MusicWidgetController
         Widget overlay    = client.getWidget(MUSIC_GROUP, 5);
         Widget scrollbar  = client.getWidget(MUSIC_GROUP, 7);
 
-        if (backupJukeboxStaticKids == null)
+        if (backupJukeboxStaticKids == null && jukebox != null)
         {
-            backupJukeboxStaticKids = Optional.ofNullable(Objects.requireNonNull(jukebox).getChildren())
-                    .map(Arrays::asList)
-                    .map(ArrayList::new)
-                    .orElseGet(ArrayList::new);
+            Widget[] kids = jukebox.getChildren();
+            backupJukeboxStaticKids = (kids != null)
+                    ? new ArrayList<>(Arrays.asList(kids))
+                    : new ArrayList<>();
         }
-        if (backupJukeboxDynamicKids == null)
+
+        // backup dynamic children of jukebox
+        if (backupJukeboxDynamicKids == null && jukebox != null)
         {
-            backupJukeboxDynamicKids = Optional.ofNullable(Objects.requireNonNull(jukebox).getDynamicChildren())
-                    .map(Arrays::asList)
-                    .map(ArrayList::new)
-                    .orElseGet(ArrayList::new);
+            Widget[] kids = jukebox.getDynamicChildren();
+            backupJukeboxDynamicKids = (kids != null)
+                    ? new ArrayList<>(Arrays.asList(kids))
+                    : new ArrayList<>();
         }
-        if (backupScrollStaticKids == null)
+
+        // backup static children of scrollable
+        if (backupScrollStaticKids == null && scrollable != null)
         {
-            backupScrollStaticKids = Optional.ofNullable(Objects.requireNonNull(scrollable).getChildren())
-                    .map(Arrays::asList)
-                    .map(ArrayList::new)
-                    .orElseGet(ArrayList::new);
+            Widget[] kids = scrollable.getChildren();
+            backupScrollStaticKids = (kids != null)
+                    ? new ArrayList<>(Arrays.asList(kids))
+                    : new ArrayList<>();
         }
-        if (backupScrollDynamicKids == null)
+
+        // backup dynamic children of scrollable
+        if (backupScrollDynamicKids == null && scrollable != null)
         {
-            backupScrollDynamicKids = Optional.ofNullable(Objects.requireNonNull(scrollable).getDynamicChildren())
-                    .map(Arrays::asList)
-                    .map(ArrayList::new)
-                    .orElseGet(ArrayList::new);
+            Widget[] kids = scrollable.getDynamicChildren();
+            backupScrollDynamicKids = (kids != null)
+                    ? new ArrayList<>(Arrays.asList(kids))
+                    : new ArrayList<>();
         }
 
         WidgetUtils.hideAllChildrenSafely(jukebox);
@@ -281,45 +287,25 @@ public class MusicWidgetController
         // 2) Hide injected drop icons under scrollable
         if (scrollable != null && backupScrollStaticKids != null && backupScrollDynamicKids != null)
         {
+            Widget[] staticKids = scrollable.getChildren();
+            if (staticKids != null) {for (Widget w : staticKids) {w.setHidden(true);}}
 
-            for (Widget w : scrollable.getChildren())
-            {
-                w.setHidden(true);
-            }
-            for (Widget w : scrollable.getDynamicChildren())
-            {
-                w.setHidden(true);
-            }
-
-            for (Widget w : backupScrollStaticKids)
-            {
-                w.setHidden(false);
-            }
-            for (Widget w : backupScrollDynamicKids)
-            {
-                w.setHidden(false);
-            }
+            Widget[] dynamicKids = scrollable.getDynamicChildren();
+            if (dynamicKids != null) {for (Widget w : dynamicKids) {w.setHidden(true);}}
+            for (Widget w : backupScrollStaticKids) {w.setHidden(false);}
+            for (Widget w : backupScrollDynamicKids) {w.setHidden(false);}
             scrollable.revalidate();
         }
 
         if (jukebox != null && backupJukeboxStaticKids != null && backupJukeboxDynamicKids != null)
         {
-            for (Widget w : jukebox.getChildren())
-            {
-                w.setHidden(true);
-            }
-            for (Widget w : jukebox.getDynamicChildren())
-            {
-                w.setHidden(true);
-            }
-            for (Widget w : backupJukeboxStaticKids)
-            {
-                w.setHidden(false);
-            }
-            for (Widget w : backupJukeboxDynamicKids)
-            {
-                w.setHidden(false);
-            }
+            Widget[] jbStaticKids = jukebox.getChildren();
+            if (jbStaticKids != null) {for (Widget w : jbStaticKids) {w.setHidden(true);}}
+
+            Widget[] jbDynamicKids = jukebox.getDynamicChildren();
+            if (jbDynamicKids != null) {for (Widget w : jbDynamicKids) {w.setHidden(true);}}
+            for (Widget w : backupJukeboxStaticKids) {w.setHidden(false);}
+            for (Widget w : backupJukeboxDynamicKids) {w.setHidden(false);}
             jukebox.revalidate();
         }
 
