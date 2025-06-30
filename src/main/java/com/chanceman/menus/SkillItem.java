@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import java.util.HashSet;
 
+@Getter
 public enum SkillItem
 {
 
@@ -84,8 +85,8 @@ public enum SkillItem
 	RUNE_ESSENCE(1436, SkillOp.CRAFT_RUNE),
 	PURE_ESSENCE(7936, SkillOp.CRAFT_RUNE);
 
-	@Getter private final int id;
-	@Getter private final SkillOp option;
+	private final int id;
+	private final SkillOp option;
 
 	SkillItem(int id, SkillOp option)
 	{

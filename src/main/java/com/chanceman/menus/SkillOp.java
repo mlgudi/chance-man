@@ -5,6 +5,7 @@ import lombok.Getter;
 import java.util.HashMap;
 import java.util.HashSet;
 
+@Getter
 public enum SkillOp
 {
 	CHOP_DOWN("Chop down"),
@@ -24,7 +25,7 @@ public enum SkillOp
 	CLEAN("Clean"),
 	CRAFT_RUNE("Craft-rune");
 
-	@Getter private final String option;
+	private final String option;
 
 	SkillOp(String option)
 	{

@@ -5,6 +5,7 @@ import lombok.Getter;
 import java.util.HashMap;
 import java.util.HashSet;
 
+@Getter
 public enum RuneProvider
 {
 	// Banana (yeah)
@@ -76,9 +77,9 @@ public enum RuneProvider
 	// Other
 	BRYOPHYTAS_STAFF_CHARGED(true, 22370, NATURE_RUNE);
 
-	@Getter private final boolean requiresEquipped;
-	@Getter private final int id;
-	@Getter private final HashSet<Integer> provides = new HashSet<>();
+	private final boolean requiresEquipped;
+	private final int id;
+	private final HashSet<Integer> provides = new HashSet<>();
 
 	RuneProvider(int id)
 	{

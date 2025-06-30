@@ -4,6 +4,7 @@ import lombok.Getter;
 
 import java.util.HashSet;
 
+@Getter
 public enum Spell
 {
 	// STANDARD
@@ -76,6 +77,7 @@ public enum Spell
 	CHARGE_EARTH_ORB("Charge Earth Orb"),
 	CHARGE_FIRE_ORB("Charge Fire Orb"),
 	CHARGE_AIR_ORB("Charge Air Orb"),
+	MONSTER_INSPECT("Monster Inspect"),
 
 	// ANCIENT
 	SMOKE_RUSH("Smoke Rush"),
@@ -149,7 +151,7 @@ public enum Spell
 	RESURRECT_CROPS("Resurrect Crops"),
 	DEATH_CHARGE("Death Charge");
 
-	@Getter private final String spellName;
+	private final String spellName;
 
 	Spell(String spellName)
 	{
